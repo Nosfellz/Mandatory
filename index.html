@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Justice RP GTA - Mandatory</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="page">
+    <section class="hero">
+      <div class="hero-copy">
+        <small>Justice de San Andreas</small>
+        <h1>Mandatory</h1>
+        <p>Site officiel de la branche Justice de l'Etat de San Andreas.</p>
+      </div>
+
+      <div class="hero-image">
+        <img src="img/mandatory.png" alt="Logo Mandatory">
+      </div>
+    </section>
+
+    <section class="calculator">
+      <div class="calculator-header">
+        <small>Les amendes par catégorie</small>
+        <button type="button" id="reset-calculator-button" class="calculator-reset-button">Réinitialiser</button>
+      </div>
+
+      <form class="fine-form">
+        <div class="offense-categories" id="offense-categories">
+          <p>Chargement des catégories...</p>
+        </div>
+
+        <div class="result-card is-empty">
+          <p id="result-title"></p>
+          <div class="result-summary" aria-live="polite">
+            <article class="summary-metric summary-metric-total">
+              <span class="summary-label">Amende appliquée</span>
+              <strong id="result-range" class="summary-value"></strong>
+            </article>
+            <article class="summary-metric summary-metric-max">
+              <span class="summary-label">Amende maximale</span>
+              <strong id="result-max-info" class="summary-value"></strong>
+            </article>
+          </div>
+          <div class="result-settings">
+            <div class="result-control">
+              <label for="global-multiplier-select">Multiplicateur global :</label>
+              <select id="global-multiplier-select">
+                <option value="1">1x</option>
+                <option value="2">2x</option>
+                <option value="3">3x</option>
+                <option value="4">4x</option>
+                <option value="5">5x</option>
+                <option value="6">6x</option>
+              </select>
+            </div>
+          </div>
+          <div id="result-items" class="result-items"></div>
+        </div>
+      </form>
+    </section>
+
+    <footer class="site-footer">
+      <p>Site fait avec <span class="footer-heart" aria-hidden="true">&hearts;</span> - 2026</p>
+      <p>Copyright © Mandatory. Tous droits reserves.</p>
+    </footer>
+  </main>
+  <script src="script.js"></script>
+</body>
+</html>
