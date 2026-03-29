@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Justice RP GTA - Mandatory</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="page">
+    <section class="hero">
+      <div class="hero-copy">
+        <small>Justice de San Andreas</small>
+        <h1>Mandatory</h1>
+        <p>Site officiel de la branche Justice pour le serveur GTA RP. Cette page présente la charte visuelle et un calculateur d'amendes pour les infractions classées par gravité.</p>
+      </div>
+
+      <div class="hero-image">
+        <img src="img/mandatory.png" alt="Logo Mandatory">
+      </div>
+    </section>
+
+    <section class="palette">
+      <div class="swatch"><span>#432222</span></div>
+      <div class="swatch"><span>#6B3737</span></div>
+      <div class="swatch"><span>#A76A65</span></div>
+      <div class="swatch"><span>#D8B0AE</span></div>
+      <div class="swatch"><span>#F4E6E6</span></div>
+    </section>
+
+    <section class="calculator">
+      <div class="calculator-header">
+        <small>Calculateur d'amendes</small>
+        <h2>Évaluer une sanction</h2>
+        <p>Affiche les 4 catégories en même temps et coche une ou plusieurs infractions pour calculer la fourchette totale.</p>
+      </div>
+
+      <form class="fine-form" onsubmit="return false;">
+        <div class="offense-categories" id="offense-categories">
+          <p>Chargement des catégories...</p>
+        </div>
+
+        <div class="result-card">
+          <p id="result-title">Aucune infraction sélectionnée</p>
+          <p id="result-max-info" class="result-max-info"></p>
+          <strong id="result-range">Cochez une ou plusieurs infractions pour voir la fourchette totale.</strong>
+          <div class="result-settings">
+            <div class="result-control">
+              <label for="global-multiplier-select">Multiplicateur global :</label>
+              <select id="global-multiplier-select">
+                <option value="1">1x</option>
+                <option value="2">2x</option>
+                <option value="3">3x</option>
+                <option value="4">4x</option>
+                <option value="5">5x</option>
+                <option value="6">6x</option>
+              </select>
+            </div>
+          </div>
+          <p class="result-applied-label">Peine appliquée :</p>
+          <div id="result-items" class="result-items"></div>
+          <p id="result-details" class="result-details"></p>
+        </div>
+      </form>
+    </section>
+  </main>
+  <script src="script.js"></script>
+</body>
+</html>
