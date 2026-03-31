@@ -136,9 +136,60 @@ function renderOffenseCategories() {
 
 const offenseSettings = new Map();
 
+function formatPlural(count, singular, plural) {
+  return count + ' ' + (count === 1 ? singular : plural);
+}
+
+function renderSelectedBreakdown(container, selected) {
+  container.innerHTML = '';
+
+  const prefix = document.createElement('span');
+  prefix.className = 'result-title-prefix';
+  prefix.textContent = formatPlural(selected.length, 'infraction', 'infractions');
+  container.appendChild(prefix);
+
+  const separator = document.createElement('span');
+  separator.className = 'result-title-separator';
+  separator.textContent = '|';
+  container.appendChild(separator);
+
+  const countsByCategory = selected.reduce(function (accumulator, entry) {
+    const count = accumulator.get(entry.categoryId) || 0;
+    accumulator.set(entry.categoryId, count + 1);
+    return accumulator;
+  }, new Map());
+
+  Object.keys(categories).forEach(function (categoryId) {
+    const count = countsByCategory.get(categoryId);
+    if (!count) {
+      return;
+    }
+
+    const chip = document.createElement('span');
+    chip.className = 'result-title-chip result-title-chip-' + categoryId;
+    chip.textContent = categories[categoryId].title + ' [' + count + ']';
+    container.appendChild(chip);
+  });
+}
+
 function getSelectedGlobalMultiplier() {
   const select = document.getElementById('global-multiplier-select');
   return select ? Number(select.value) : 1;
+}
+
+function resetCalculatorSelections() {
+  document.querySelectorAll('#offense-categories input[type="checkbox"]').forEach(function (checkbox) {
+    checkbox.checked = false;
+  });
+
+  offenseSettings.clear();
+
+  const globalMultiplierSelect = document.getElementById('global-multiplier-select');
+  if (globalMultiplierSelect) {
+    globalMultiplierSelect.value = '1';
+  }
+
+  updateSelectedSummary();
 }
 
 function getSelectedOffenses() {
@@ -169,19 +220,26 @@ function getSelectedOffenses() {
 
 function updateSelectedSummary() {
   const selected = getSelectedOffenses();
+  const resultCard = document.querySelector('.result-card');
   const title = document.getElementById('result-title');
   const maxInfo = document.getElementById('result-max-info');
   const range = document.getElementById('result-range');
-  const details = document.getElementById('result-details');
   const items = document.getElementById('result-items');
   const globalMultiplier = getSelectedGlobalMultiplier();
 
   if (selected.length === 0) {
-    title.textContent = 'Aucune infraction sélectionnée';
-    range.textContent = 'Cochez une ou plusieurs infractions pour voir la fourchette totale.';
+    if (resultCard) {
+      resultCard.classList.add('is-empty');
+    }
+    title.textContent = '';
+    maxInfo.textContent = '';
+    range.textContent = '';
     items.innerHTML = '';
-    details.textContent = '';
     return;
+  }
+
+  if (resultCard) {
+    resultCard.classList.remove('is-empty');
   }
 
   let subtotal = 0;
@@ -200,7 +258,7 @@ function updateSelectedSummary() {
     }
 
     const wrapper = document.createElement('div');
-    wrapper.className = 'result-item';
+    wrapper.className = 'result-item result-category-' + entry.categoryId;
 
     const titleRow = document.createElement('div');
     titleRow.className = 'result-item-title';
@@ -213,7 +271,16 @@ function updateSelectedSummary() {
 
     const label = document.createElement('label');
     label.setAttribute('for', 'include-' + entry.key);
-    label.textContent = entry.categoryTitle + ' — ' + entry.offense.label;
+    const categoryBadge = document.createElement('span');
+    categoryBadge.className = 'result-item-category-badge';
+    categoryBadge.textContent = entry.categoryTitle;
+
+    const offenseText = document.createElement('span');
+    offenseText.className = 'result-item-offense';
+    offenseText.textContent = entry.offense.label;
+
+    label.appendChild(categoryBadge);
+    label.appendChild(offenseText);
 
     const rangeText = document.createElement('div');
     rangeText.className = 'result-item-meta';
@@ -293,21 +360,34 @@ function updateSelectedSummary() {
   });
 
   const maxEstimate = selected.reduce(function (sum, entry) {
+    if (!entry.settings.include) {
+      return sum;
+    }
     return sum + entry.offense.max * entry.settings.multiplier;
   }, 0) * globalMultiplier;
 
   const total = subtotal * globalMultiplier;
-  title.textContent = selected.length + ' infraction' + (selected.length > 1 ? 's' : '') + ' sélectionnée' + (selected.length > 1 ? 's' : '');
-  maxInfo.textContent = 'Peine maximale : ' + formatAmount(maxEstimate);
+  renderSelectedBreakdown(title, selected);
+  maxInfo.textContent = formatAmount(maxEstimate);
   range.textContent = formatAmount(total);
 
 }
 
 function initFineCalculator() {
   renderOffenseCategories();
+  const fineForm = document.querySelector('.fine-form');
   const globalMultiplierSelect = document.getElementById('global-multiplier-select');
+  const resetButton = document.getElementById('reset-calculator-button');
+  if (fineForm) {
+    fineForm.addEventListener('submit', function (event) {
+      event.preventDefault();
+    });
+  }
   if (globalMultiplierSelect) {
     globalMultiplierSelect.addEventListener('change', updateSelectedSummary);
+  }
+  if (resetButton) {
+    resetButton.addEventListener('click', resetCalculatorSelections);
   }
   updateSelectedSummary();
 }

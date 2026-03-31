@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Justice RP GTA - Mandatory</title>
+  <title>Mandatory</title>
+  <link rel="icon" type="image/png" href="img/mandatory.png">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -12,7 +13,10 @@
       <div class="hero-copy">
         <small>Justice de San Andreas</small>
         <h1>Mandatory</h1>
-        <p>Site officiel de la branche Justice pour le serveur GTA RP. Cette page présente la charte visuelle et un calculateur d'amendes pour les infractions classées par gravité.</p>
+        <p>Site officiel de la branche Justice de l'Etat de San Andreas.</p>
+        <div class="hero-actions">
+          <a class="hero-pill hero-pill-primary" href="lois.html">Consulter les lois</a>
+        </div>
       </div>
 
       <div class="hero-image">
@@ -20,30 +24,29 @@
       </div>
     </section>
 
-    <section class="palette">
-      <div class="swatch"><span>#432222</span></div>
-      <div class="swatch"><span>#6B3737</span></div>
-      <div class="swatch"><span>#A76A65</span></div>
-      <div class="swatch"><span>#D8B0AE</span></div>
-      <div class="swatch"><span>#F4E6E6</span></div>
-    </section>
-
     <section class="calculator">
       <div class="calculator-header">
-        <small>Calculateur d'amendes</small>
-        <h2>Évaluer une sanction</h2>
-        <p>Affiche les 4 catégories en même temps et coche une ou plusieurs infractions pour calculer la fourchette totale.</p>
+        <small>Les amendes par catégorie</small>
+        <button type="button" id="reset-calculator-button" class="calculator-reset-button">Réinitialiser</button>
       </div>
 
-      <form class="fine-form" onsubmit="return false;">
+      <form class="fine-form">
         <div class="offense-categories" id="offense-categories">
           <p>Chargement des catégories...</p>
         </div>
 
-        <div class="result-card">
-          <p id="result-title">Aucune infraction sélectionnée</p>
-          <p id="result-max-info" class="result-max-info"></p>
-          <strong id="result-range">Cochez une ou plusieurs infractions pour voir la fourchette totale.</strong>
+        <div class="result-card is-empty">
+          <p id="result-title"></p>
+          <div class="result-summary" aria-live="polite">
+            <article class="summary-metric summary-metric-total">
+              <span class="summary-label">Amende appliquée</span>
+              <strong id="result-range" class="summary-value"></strong>
+            </article>
+            <article class="summary-metric summary-metric-max">
+              <span class="summary-label">Amende maximale</span>
+              <strong id="result-max-info" class="summary-value"></strong>
+            </article>
+          </div>
           <div class="result-settings">
             <div class="result-control">
               <label for="global-multiplier-select">Multiplicateur global :</label>
@@ -57,12 +60,15 @@
               </select>
             </div>
           </div>
-          <p class="result-applied-label">Peine appliquée :</p>
           <div id="result-items" class="result-items"></div>
-          <p id="result-details" class="result-details"></p>
         </div>
       </form>
     </section>
+
+    <footer class="site-footer">
+      <p>Site fait avec <span class="footer-heart" aria-hidden="true">&hearts;</span> - 2026</p>
+      <p>Copyright © Mandatory. Tous droits reserves.</p>
+    </footer>
   </main>
   <script src="script.js"></script>
 </body>
