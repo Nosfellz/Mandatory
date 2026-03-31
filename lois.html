@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mandatory | Les lois</title>
+  <link rel="icon" type="image/png" href="img/mandatory.png">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="vendor/pdfjs/package/web/pdf_viewer.css">
+</head>
+<body>
+  <main class="page document-page">
+    <section class="document-hero">
+      <div class="document-hero-copy">
+        <small>Documentation officielle</small>
+        <h1>Les lois</h1>
+        <p>Un espace dédié a la consultation des textes de loi et à la recherche d'informations au fil des amendements</p>
+      </div>
+
+      <div class="document-hero-side">
+        <div class="hero-image">
+          <img src="img/mandatory.png" alt="Logo Mandatory">
+        </div>
+        <div class="document-actions">
+          <a class="hero-pill hero-pill-primary" href="docs/Les lois - février 2026.pdf" target="_blank" rel="noopener noreferrer">Ouvrir dans un onglet</a>
+          <a class="hero-pill hero-pill-secondary" href="docs/Les lois - février 2026.pdf" download>Télécharger le PDF</a>
+          <a class="hero-pill hero-pill-ghost" href="index.html">Retour au site</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="document-viewer-shell">
+      <div class="document-viewer-header">
+        <span class="document-viewer-title">Les lois - février 2026</span>
+        <span class="document-viewer-badge">33 pages</span>
+      </div>
+
+      <div class="document-stage">
+        <div class="document-toolbar" aria-label="Outils de lecture">
+          <div class="document-toolbar-group document-toolbar-group-search">
+            <span class="document-toolbar-section">Recherche</span>
+            <label class="sr-only" for="document-search">Recherche dans le document</label>
+            <input type="search" id="document-search" class="document-search-input" placeholder="Rechercher un mot-clé..." autocomplete="off">
+            <button type="button" class="document-tool-button" id="search-submit">Rechercher</button>
+            <div class="document-toolbar-pair">
+              <button type="button" class="document-tool-button document-tool-button-subtle" id="search-prev">Résultat précédent</button>
+              <button type="button" class="document-tool-button document-tool-button-subtle" id="search-next">Résultat suivant</button>
+            </div>
+            <span class="document-toolbar-status" id="search-status">Aucune recherche</span>
+          </div>
+
+          <div class="document-toolbar-group document-toolbar-group-display">
+            <span class="document-toolbar-section">Affichage</span>
+            <div class="document-display-row">
+              <label for="document-zoom" class="document-toolbar-label">Zoom</label>
+              <select id="document-zoom" class="document-zoom-select">
+                <option value="page-fit">Ajuster</option>
+                <option value="0.10">10%</option>
+                <option value="0.14">14%</option>
+                <option value="0.18">18%</option>
+                <option value="0.25" selected>25%</option>
+                <option value="0.35">35%</option>
+                <option value="0.50">50%</option>
+                <option value="0.75">75%</option>
+                <option value="1">100%</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="document-toolbar-group document-toolbar-group-page">
+            <span class="document-toolbar-section">Navigation</span>
+            <span class="document-toolbar-status" id="page-status">Page 1 / 33</span>
+            <div class="document-toolbar-pair">
+              <button type="button" class="document-tool-button" id="page-prev">Page précédente</button>
+              <button type="button" class="document-tool-button" id="page-next">Page suivante</button>
+            </div>
+            <div class="document-outline" id="document-outline">
+              <span class="document-outline-heading">Sommaire</span>
+              <span class="document-outline-empty">Chargement du sommaire...</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="document-preview">
+          <div class="document-frame" id="document-frame">
+            <div id="viewerContainer" class="pdfjs-viewer-container">
+              <div id="viewer" class="pdfViewer"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p class="document-note"></p>
+    </section>
+
+    <footer class="site-footer">
+      <p>Site fait avec <span class="footer-heart" aria-hidden="true">&hearts;</span> - 2026</p>
+      <p>Copyright © Mandatory. Tous droits réservés.</p>
+    </footer>
+  </main>
+  <script type="module" src="lois.js"></script>
+</body>
+</html>
