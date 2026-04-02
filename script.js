@@ -80,6 +80,9 @@ function formatAmount(amount) {
 
 function renderOffenseCategories() {
   const container = document.getElementById('offense-categories');
+  if (!container) {
+    return;
+  }
   container.innerHTML = '';
 
   Object.keys(categories).forEach(function (categoryId) {
@@ -374,6 +377,9 @@ function updateSelectedSummary() {
 }
 
 function initFineCalculator() {
+  if (!document.getElementById('offense-categories')) {
+    return;
+  }
   renderOffenseCategories();
   const fineForm = document.querySelector('.fine-form');
   const globalMultiplierSelect = document.getElementById('global-multiplier-select');

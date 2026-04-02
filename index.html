@@ -25,50 +25,44 @@
         </div>
         <div class="hero-actions">
           <a class="hero-pill hero-pill-primary" href="lois.html">📕 Les lois</a>
+          <a class="hero-pill hero-pill-secondary" href="amendes.html">💲Les amendes</a>
         </div>
       </div>
     </section>
 
-    <section class="calculator">
-      <div class="calculator-header">
-        <small>Les amendes par catégorie</small>
-        <button type="button" id="reset-calculator-button" class="calculator-reset-button">Réinitialiser</button>
+    <section class="document-viewer-header home-focus-header" aria-label="Actualités">
+      <span class="document-viewer-title">L'actu du moment</span>
+      <span class="document-viewer-badge home-focus-badge-live">2 nouvelles communications</span>
+    </section>
+
+    <section class="home-focus-shell">
+      <div class="home-focus">
+        <div class="home-focus-copy">
+          <small>Mandatory</small>
+          <h2>Decree Annoucement</h2>
+          <p>Communication officielle : Durcissement d'une peine</p>
+          <p class="home-focus-note home-focus-note-alert">Décret en vigueur jusqu'au 16 avril 2026.</p>
+        </div>
+
+        <a class="home-focus-media" href="documentations.html" aria-label="Consulter la communication Decree Annoucement">
+          <img src="img/Abduction Repression - avril 2026.png" alt="Decree Annoucement - avril 2026">
+        </a>
       </div>
+    </section>
 
-      <form class="fine-form">
-        <div class="offense-categories" id="offense-categories">
-          <p>Chargement des catégories...</p>
+    <section class="home-focus-shell">
+      <div class="home-focus home-focus-top">
+        <div class="home-focus-copy">
+          <small class="home-focus-tag-government">Gouvernement</small>
+          <h2>Calendrier des élections</h2>
+          <p>Communication officielle : Elections gouvernementales.</p>
+          <p class="home-focus-note home-focus-note-update">Publication du 23 mars 2026.</p>
         </div>
 
-        <div class="result-card is-empty">
-          <p id="result-title"></p>
-          <p class="result-rule-note">Maximum 3 infractions à retenir. | x3 pour les civils | x6 pour les entités reconnues</p>
-          <div class="result-summary" aria-live="polite">
-            <article class="summary-metric summary-metric-total">
-              <span class="summary-label">Amende appliquée</span>
-              <strong id="result-range" class="summary-value"></strong>
-            </article>
-            <article class="summary-metric summary-metric-max">
-              <span class="summary-label">Amende maximale</span>
-              <strong id="result-max-info" class="summary-value"></strong>
-            </article>
-          </div>
-          <div class="result-settings">
-            <div class="result-control">
-              <label for="global-multiplier-select">Multiplicateur global :</label>
-              <select id="global-multiplier-select">
-                <option value="1">1x</option>
-                <option value="2">2x</option>
-                <option value="3">3x</option>
-                <option value="4">4x</option>
-                <option value="5">5x</option>
-                <option value="6">6x</option>
-              </select>
-            </div>
-          </div>
-          <div id="result-items" class="result-items"></div>
-        </div>
-      </form>
+        <a class="home-focus-media home-focus-media-contained" href="documentations.html" aria-label="Consulter le calendrier des élections">
+          <img src="img/Calendrier des élections Gouvernementales - mars 2026.png" alt="Calendrier des élections - mars 2026">
+        </a>
+      </div>
     </section>
 
     <footer class="site-footer">
@@ -76,6 +70,5 @@
       <p>Copyright © Mandatory. Tous droits réservés.</p>
     </footer>
   </main>
-  <script src="script.js"></script>
 </body>
 </html>
