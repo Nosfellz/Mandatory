@@ -290,6 +290,7 @@ function updateSelectedSummary() {
   selected.forEach(function (entry) {
     const minAmount = entry.offense.min;
     const maxAmount = entry.offense.max;
+    const freeInputMaxAmount = minAmount * 6;
     const settings = entry.settings;
     const amount = settings.amount;
     const included = settings.include;
@@ -333,11 +334,11 @@ function updateSelectedSummary() {
     amountInput.className = 'result-amount-input';
     amountInput.dataset.key = entry.key;
     amountInput.inputMode = 'numeric';
-    amountInput.value = formatAmountInputValue(clampAmount(amount, minAmount, maxAmount));
+    amountInput.value = formatAmountInputValue(clampAmount(amount, minAmount, freeInputMaxAmount));
     amountInput.placeholder = formatAmountInputValue(minAmount);
     amountInput.disabled = !included;
     amountInput.setAttribute('aria-label', "Montant appliqué pour " + entry.offense.label);
-    amountInput.title = "Saisie libre entre " + formatAmount(minAmount) + " et " + formatAmount(maxAmount);
+    amountInput.title = "Saisie libre entre " + formatAmount(minAmount) + " et " + formatAmount(freeInputMaxAmount);
 
     amountInput.addEventListener('input', function () {
       const rawValue = this.value.trim();
@@ -351,7 +352,7 @@ function updateSelectedSummary() {
         return;
       }
 
-      const limitedValue = Number(clampAmountToMax(parsedValue, maxAmount));
+      const limitedValue = Number(clampAmountToMax(parsedValue, freeInputMaxAmount));
       this.value = formatAmountInputValue(Number.isFinite(limitedValue) ? limitedValue : parsedValue);
     });
 
@@ -395,7 +396,7 @@ function updateSelectedSummary() {
     amountInput.addEventListener('change', function () {
       const settings = offenseSettings.get(this.dataset.key);
       const parsedValue = parseAmountInputValue(this.value);
-      const nextAmount = clampAmount(parsedValue, minAmount, maxAmount);
+      const nextAmount = clampAmount(parsedValue, minAmount, freeInputMaxAmount);
       if (settings) {
         settings.amount = nextAmount;
       }
@@ -404,7 +405,7 @@ function updateSelectedSummary() {
     });
 
     amountInput.addEventListener('blur', function () {
-      const nextAmount = clampAmount(parseAmountInputValue(this.value), minAmount, maxAmount);
+      const nextAmount = clampAmount(parseAmountInputValue(this.value), minAmount, freeInputMaxAmount);
       const settings = offenseSettings.get(this.dataset.key);
       if (settings) {
         settings.amount = nextAmount;
