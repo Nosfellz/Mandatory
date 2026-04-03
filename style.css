@@ -219,23 +219,11 @@ body::before {
   text-transform: uppercase;
 }
 
-.hero-copy-actions {
-  justify-content: center;
+.hero-nav-actions {
+  justify-content: flex-start;
   width: fit-content;
-  margin-top: 6px;
-  padding-top: 12px;
-  position: relative;
-}
-
-.hero-copy-actions::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 50%;
-  width: 100%;
-  height: 1px;
-  transform: translateX(-50%);
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent);
+  margin-top: 2px;
+  margin-bottom: 2px;
 }
 
 .hero-side .hero-actions {
@@ -414,6 +402,13 @@ body::before {
   align-self: flex-end;
 }
 
+.amendes-page .document-hero-side .document-actions {
+  width: 240px;
+  max-width: 240px;
+  justify-content: center;
+  align-self: flex-end;
+}
+
 .document-viewer-shell {
   margin: 24px 56px 28px;
   padding: 18px;
@@ -434,6 +429,12 @@ body::before {
   gap: 48px;
   justify-content: center;
   align-items: start;
+}
+
+.gallery-sidebar {
+  display: grid;
+  gap: 10px;
+  align-content: start;
 }
 
 .home-focus-shell {
@@ -622,9 +623,15 @@ body::before {
 }
 
 .gallery-menu {
-  margin-top: 54px;
+  margin-top: 0;
   min-width: 350px;
   max-width: 430px;
+}
+
+.gallery-menu-update {
+  margin-top: 0;
+  margin-bottom: 10px;
+  justify-self: start;
 }
 
 .gallery-menu-group {
