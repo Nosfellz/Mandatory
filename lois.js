@@ -9,7 +9,7 @@ import {
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = "./vendor/pdfjs/package/build/pdf.worker.mjs";
 
-const PDF_URL = "docs/Les lois - février 2026.pdf";
+const PDF_URL = "docs/les-lois-fevrier-2026.pdf";
 const frameElement = document.getElementById("document-frame");
 const pageStatusElement = document.getElementById("page-status");
 const searchStatusElement = document.getElementById("search-status");
