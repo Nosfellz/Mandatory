@@ -324,6 +324,31 @@ body::before {
   max-width: 700px;
 }
 
+.document-hero-update {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  margin-top: 2px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(123,58,58,0.1));
+  color: rgba(244,230,230,0.84);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.document-hero-meta {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
 .document-page .document-hero-copy p {
   max-width: none;
   white-space: nowrap;
@@ -602,6 +627,34 @@ body::before {
   max-width: 430px;
 }
 
+.gallery-menu-group {
+  --gallery-item-hover-bg: rgba(176,106,59,0.12);
+  --gallery-item-hover-border: rgba(176,106,59,0.22);
+  --gallery-item-active-bg: rgba(176,106,59,0.16);
+  --gallery-item-active-border: rgba(176,106,59,0.3);
+}
+
+.gallery-menu-group[aria-labelledby="gallery-presidence"] {
+  --gallery-item-hover-bg: rgba(214,143,92,0.16);
+  --gallery-item-hover-border: rgba(214,143,92,0.3);
+  --gallery-item-active-bg: rgba(214,143,92,0.22);
+  --gallery-item-active-border: rgba(214,143,92,0.42);
+}
+
+.gallery-menu-group[aria-labelledby="gallery-mandatory"] {
+  --gallery-item-hover-bg: rgba(166,45,45,0.18);
+  --gallery-item-hover-border: rgba(205,86,86,0.3);
+  --gallery-item-active-bg: rgba(166,45,45,0.24);
+  --gallery-item-active-border: rgba(205,86,86,0.4);
+}
+
+.gallery-menu-group[aria-labelledby="gallery-gouvernement"] {
+  --gallery-item-hover-bg: rgba(130,94,94,0.16);
+  --gallery-item-hover-border: rgba(172,146,146,0.24);
+  --gallery-item-active-bg: rgba(130,94,94,0.22);
+  --gallery-item-active-border: rgba(172,146,146,0.32);
+}
+
 .gallery-section-tag {
   width: 100%;
   min-height: auto;
@@ -650,15 +703,15 @@ body::before {
 
 .gallery-menu-item:hover,
 .gallery-menu-item:focus-visible {
-  background: rgba(176,106,59,0.12);
-  border-color: rgba(176,106,59,0.22);
+  background: var(--gallery-item-hover-bg);
+  border-color: var(--gallery-item-hover-border);
   transform: translateX(2px);
   outline: none;
 }
 
 .gallery-menu-item.is-active {
-  border-color: rgba(176,106,59,0.3);
-  background: rgba(176,106,59,0.16);
+  border-color: var(--gallery-item-active-border);
+  background: var(--gallery-item-active-bg);
 }
 
 .gallery-menu-item-title {
@@ -705,6 +758,54 @@ body::before {
   min-width: 180px;
 }
 
+.gallery-preview-copy .gallery-section-tag[hidden] {
+  display: none;
+}
+
+.gallery-preview-empty {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  max-width: 520px;
+  margin-top: 24px;
+  padding: 22px 26px;
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+  text-align: center;
+}
+
+.gallery-preview-empty-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(123,58,58,0.12));
+  color: #f0dedb;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.gallery-preview-empty-title {
+  color: var(--ivory);
+  font-family: "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  font-size: 1.1rem;
+  line-height: 1.2;
+}
+
+.gallery-preview-empty-text {
+  color: var(--text-muted);
+  font-size: 0.86rem;
+  line-height: 1.7;
+  letter-spacing: 0.03em;
+}
+
 .gallery-preview-note {
   display: inline-flex;
   align-items: center;
@@ -724,6 +825,11 @@ body::before {
 }
 
 .gallery-preview-note[hidden] {
+  display: none;
+}
+
+.gallery-preview-stage[hidden],
+.gallery-preview-empty[hidden] {
   display: none;
 }
 
@@ -1314,6 +1420,11 @@ body::before {
 
   .document-hero-side .document-actions {
     flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .document-hero-meta {
+    flex-direction: column;
     justify-content: center;
   }
 
