@@ -55,24 +55,6 @@
             <span class="document-toolbar-status" id="search-status">Aucune recherche</span>
           </div>
 
-          <div class="document-toolbar-group document-toolbar-group-display">
-            <span class="document-toolbar-section">Affichage</span>
-            <div class="document-display-row">
-              <label for="document-zoom" class="document-toolbar-label">Zoom</label>
-              <select id="document-zoom" class="document-zoom-select">
-                <option value="page-fit">Ajuster</option>
-                <option value="0.10">10%</option>
-                <option value="0.14">14%</option>
-                <option value="0.18">18%</option>
-                <option value="0.25" selected>25%</option>
-                <option value="0.35">35%</option>
-                <option value="0.50">50%</option>
-                <option value="0.75">75%</option>
-                <option value="1">100%</option>
-              </select>
-            </div>
-          </div>
-
           <div class="document-toolbar-group document-toolbar-group-page">
             <span class="document-toolbar-section">Navigation</span>
             <span class="document-toolbar-status" id="page-status">Page 1 / 33</span>
@@ -80,11 +62,14 @@
               <button type="button" class="document-tool-button" id="page-prev">Page précédente</button>
               <button type="button" class="document-tool-button" id="page-next">Page suivante</button>
             </div>
+          </div>
+
+          <details class="document-toolbar-group document-toolbar-group-amendments">
+            <summary class="document-toolbar-group-toggle">Parcourir les Amendements</summary>
             <div class="document-outline" id="document-outline">
-              <span class="document-outline-heading">Sommaire</span>
               <span class="document-outline-empty">Chargement du sommaire...</span>
             </div>
-          </div>
+          </details>
         </div>
 
         <div class="document-preview">

@@ -74,6 +74,10 @@ const categories = {
   }
 };
 
+function getShortCategoryTitle(categoryId) {
+  return 'Cat. ' + categoryId;
+}
+
 function formatAmount(amount) {
   return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + '$';
 }
@@ -170,7 +174,7 @@ function renderSelectedBreakdown(container, selected) {
 
     const chip = document.createElement('span');
     chip.className = 'result-title-chip result-title-chip-' + categoryId;
-    chip.textContent = categories[categoryId].title + ' [' + count + ']';
+    chip.textContent = getShortCategoryTitle(categoryId) + ' [' + count + ']';
     container.appendChild(chip);
   });
 }
@@ -278,7 +282,7 @@ function updateSelectedSummary() {
     label.setAttribute('for', 'include-' + entry.key);
     const categoryBadge = document.createElement('span');
     categoryBadge.className = 'result-item-category-badge';
-    categoryBadge.textContent = entry.categoryTitle;
+    categoryBadge.textContent = getShortCategoryTitle(entry.categoryId);
 
     const offenseText = document.createElement('span');
     offenseText.className = 'result-item-offense';

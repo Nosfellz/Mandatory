@@ -14,12 +14,15 @@ const frameElement = document.getElementById("document-frame");
 const pageStatusElement = document.getElementById("page-status");
 const searchStatusElement = document.getElementById("search-status");
 const searchInputElement = document.getElementById("document-search");
-const zoomSelectElement = document.getElementById("document-zoom");
 const previousPageButton = document.getElementById("page-prev");
 const nextPageButton = document.getElementById("page-next");
 const searchSubmitButton = document.getElementById("search-submit");
 const previousSearchButton = document.getElementById("search-prev");
 const nextSearchButton = document.getElementById("search-next");
+const toolbarElement = document.querySelector(".document-toolbar");
+const stageElement = document.querySelector(".document-stage");
+const searchGroupElement = document.querySelector(".document-toolbar-group-search");
+const amendmentsGroupElement = document.querySelector(".document-toolbar-group-amendments");
 const outlineContainerElement = document.getElementById("document-outline");
 const documentHeaderElement = document.querySelector(".document-viewer-header");
 const viewerContainerElement = document.getElementById("viewerContainer");
@@ -33,8 +36,13 @@ const state = {
   findController: null,
   searchQuery: "",
   syncFrameHeightRaf: 0,
+  resizeTimeout: 0,
+  selectedMatchScrollRaf: 0,
+  selectedMatchScrollTimeout: 0,
+  toolbarPinRaf: 0,
   pageHeaderCache: new Map(),
   pageTextCache: new Map(),
+  preferredZoomValue: "auto-fit",
   exactSearch: {
     query: "",
     total: 0,
@@ -91,6 +99,23 @@ function updateSearchStatus(matchesCount = { current: 0, total: 0 }, findState =
   searchStatusElement.textContent = `${current} / ${total} résultat(s)`;
 }
 
+const toolbarPlaceholderElement = document.createElement("div");
+toolbarPlaceholderElement.className = "document-toolbar-placeholder";
+toolbarPlaceholderElement.hidden = true;
+toolbarElement?.insertAdjacentElement("afterend", toolbarPlaceholderElement);
+
+function setSearchActiveState(isActive) {
+  searchGroupElement?.classList.toggle("is-search-active", isActive);
+}
+
+function getLogicalMatchIndex(rawIndex = 0) {
+  if (rawIndex <= 0) {
+    return 0;
+  }
+
+  return Math.ceil(rawIndex / 2);
+}
+
 function dispatchFindCommand(type = "", findPrevious = false) {
   if (!state.searchQuery) {
     return;
@@ -127,9 +152,176 @@ function queueSyncFrameHeight() {
   }
 
   state.syncFrameHeightRaf = requestAnimationFrame(() => {
-    state.syncFrameHeightRaf = requestAnimationFrame(() => {
-      syncFrameHeight();
-      state.syncFrameHeightRaf = 0;
+    syncFrameHeight();
+    state.syncFrameHeightRaf = 0;
+  });
+}
+
+function getCurrentPageView() {
+  if (!state.pdfViewer || !state.pdfDocument) {
+    return null;
+  }
+
+  const pageIndex = Math.max((state.pdfViewer.currentPageNumber || 1) - 1, 0);
+  return state.pdfViewer.getPageView?.(pageIndex)
+    ?? state.pdfViewer._pages?.[pageIndex]
+    ?? null;
+}
+
+function applyResponsiveScale() {
+  if (!state.pdfViewer) {
+    return;
+  }
+
+  const requestedScale = state.preferredZoomValue || "auto-fit";
+
+  if (requestedScale === "auto-fit") {
+    if (state.pdfViewer.currentScaleValue === "page-width") {
+      queueSyncFrameHeight();
+      return;
+    }
+
+    state.pdfViewer.currentScaleValue = "page-width";
+    queueSyncFrameHeight();
+    return;
+  }
+
+  const numericScale = Number.parseFloat(requestedScale);
+  const pageView = getCurrentPageView();
+  const baseViewport = pageView?.pdfPage?.getViewport?.({ scale: 1 });
+  const containerWidth = viewerContainerElement?.clientWidth ?? 0;
+  const safeContainerWidth = Math.max(containerWidth - 16, 0);
+
+  if (!baseViewport?.width || !safeContainerWidth) {
+    return;
+  }
+
+  const fitScale = safeContainerWidth / baseViewport.width;
+  const nextScale = Math.min(
+    Number.isFinite(numericScale) && numericScale > 0 ? numericScale : fitScale,
+    fitScale
+  );
+
+  if (Math.abs((state.pdfViewer.currentScale || 0) - nextScale) < 0.001) {
+    queueSyncFrameHeight();
+    return;
+  }
+
+  state.pdfViewer.currentScale = nextScale;
+  queueSyncFrameHeight();
+}
+
+function handleWindowResize() {
+  if (state.resizeTimeout) {
+    clearTimeout(state.resizeTimeout);
+  }
+
+  state.resizeTimeout = window.setTimeout(() => {
+    applyResponsiveScale();
+    state.resizeTimeout = 0;
+  }, 120);
+}
+
+function unpinToolbar() {
+  if (!toolbarElement) {
+    return;
+  }
+
+  toolbarElement.classList.remove("is-fixed");
+  toolbarElement.style.removeProperty("width");
+  toolbarElement.style.removeProperty("left");
+  toolbarPlaceholderElement.hidden = true;
+  toolbarPlaceholderElement.style.removeProperty("height");
+}
+
+function updateToolbarPin() {
+  if (!toolbarElement || !stageElement) {
+    return;
+  }
+
+  const isCompactViewport = window.matchMedia("(max-width: 860px)").matches;
+  if (isCompactViewport) {
+    unpinToolbar();
+    return;
+  }
+
+  const toolbarHeight = toolbarElement.offsetHeight;
+  const stageRect = stageElement.getBoundingClientRect();
+  const toolbarRect = toolbarPlaceholderElement.hidden
+    ? toolbarElement.getBoundingClientRect()
+    : toolbarPlaceholderElement.getBoundingClientRect();
+  const shouldPin = stageRect.top <= 16 && stageRect.bottom > toolbarHeight + 16;
+
+  if (!shouldPin) {
+    unpinToolbar();
+    return;
+  }
+
+  toolbarPlaceholderElement.hidden = false;
+  toolbarPlaceholderElement.style.height = `${toolbarHeight}px`;
+  toolbarElement.classList.add("is-fixed");
+  toolbarElement.style.width = `${toolbarRect.width}px`;
+  toolbarElement.style.left = `${toolbarRect.left}px`;
+}
+
+function queueToolbarPinUpdate() {
+  if (state.toolbarPinRaf) {
+    cancelAnimationFrame(state.toolbarPinRaf);
+  }
+
+  state.toolbarPinRaf = requestAnimationFrame(() => {
+    updateToolbarPin();
+    state.toolbarPinRaf = 0;
+  });
+}
+
+function scrollToSelectedMatch() {
+  const selectedHighlight = viewerElement.querySelector(".textLayer .highlight.selected");
+  if (!selectedHighlight) {
+    return false;
+  }
+
+  const highlightRect = selectedHighlight.getBoundingClientRect();
+  const viewerRect = viewerContainerElement.getBoundingClientRect();
+  const preferredTopOffset = 150;
+  const desiredTop = Math.max(
+    window.scrollY + highlightRect.top - preferredTopOffset,
+    window.scrollY + viewerRect.top - 40
+  );
+
+  window.scrollTo({
+    behavior: "auto",
+    top: desiredTop,
+  });
+
+  return true;
+}
+
+function clearQueuedSelectedMatchScroll() {
+  if (state.selectedMatchScrollRaf) {
+    cancelAnimationFrame(state.selectedMatchScrollRaf);
+    state.selectedMatchScrollRaf = 0;
+  }
+
+  if (state.selectedMatchScrollTimeout) {
+    clearTimeout(state.selectedMatchScrollTimeout);
+    state.selectedMatchScrollTimeout = 0;
+  }
+}
+
+function queueScrollToSelectedMatch(attempt = 0) {
+  clearQueuedSelectedMatchScroll();
+
+  state.selectedMatchScrollRaf = requestAnimationFrame(() => {
+    state.selectedMatchScrollRaf = requestAnimationFrame(() => {
+      const hasScrolled = scrollToSelectedMatch();
+      state.selectedMatchScrollRaf = 0;
+
+      if (!hasScrolled && attempt < 6) {
+        state.selectedMatchScrollTimeout = window.setTimeout(() => {
+          queueScrollToSelectedMatch(attempt + 1);
+        }, 60);
+      }
     });
   });
 }
@@ -406,6 +598,8 @@ async function updateExactSearchCount(query) {
 function syncSearchQueryFromInput() {
   const nextQuery = searchInputElement.value.trim();
 
+  setSearchActiveState(Boolean(nextQuery));
+
   if (nextQuery) {
     state.searchQuery = nextQuery;
   }
@@ -430,10 +624,29 @@ function changePage(changeHandler) {
 function handleSearchNavigation(findPrevious = false) {
   syncSearchQueryFromInput();
   ensureExactSearchCount();
+  const previousRawMatches = getRawViewerMatchesCount();
+  const previousLogicalCurrent = getLogicalMatchIndex(previousRawMatches.current);
+
   dispatchFindCommand("again", findPrevious);
+
+  requestAnimationFrame(() => {
+    const nextRawMatches = getRawViewerMatchesCount();
+    const nextLogicalCurrent = getLogicalMatchIndex(nextRawMatches.current);
+    const nextLogicalTotal = state.exactSearch.ready && state.exactSearch.query === getNormalizedSearchQuery()
+      ? state.exactSearch.total
+      : getLogicalMatchIndex(nextRawMatches.total);
+
+    const isStuckOnDuplicatedMatch = nextLogicalTotal > 0
+      && nextLogicalCurrent === previousLogicalCurrent
+      && nextRawMatches.current !== previousRawMatches.current;
+
+    if (isStuckOnDuplicatedMatch) {
+      dispatchFindCommand("again", findPrevious);
+    }
+  });
 }
 
-function getViewerMatchesCount() {
+function getRawViewerMatchesCount() {
   const fallback = { current: 0, total: 0 };
 
   if (!state.findController) {
@@ -455,6 +668,15 @@ function getViewerMatchesCount() {
   current += selected.matchIdx + 1;
 
   return { current, total };
+}
+
+function getViewerMatchesCount() {
+  const rawMatches = getRawViewerMatchesCount();
+
+  return {
+    current: getLogicalMatchIndex(rawMatches.current),
+    total: getLogicalMatchIndex(rawMatches.total),
+  };
 }
 
 async function flattenOutlineItems(items, depth = 0, result = []) {
@@ -572,15 +794,10 @@ function groupOutlineItems(items) {
 async function renderOutline(items) {
   outlineContainerElement.innerHTML = "";
 
-  const heading = document.createElement("span");
-  heading.className = "document-outline-heading";
-  heading.textContent = "Sommaire";
-  outlineContainerElement.appendChild(heading);
-
   if (!Array.isArray(items) || items.length === 0) {
     const emptyState = document.createElement("span");
     emptyState.className = "document-outline-empty";
-    emptyState.textContent = "Aucun sommaire disponible";
+    emptyState.textContent = "Aucun amendement disponible";
     outlineContainerElement.appendChild(emptyState);
     return;
   }
@@ -591,7 +808,7 @@ async function renderOutline(items) {
   if (flatItems.length === 0) {
     const emptyState = document.createElement("span");
     emptyState.className = "document-outline-empty";
-    emptyState.textContent = "Aucun sommaire disponible";
+    emptyState.textContent = "Aucun amendement disponible";
     outlineContainerElement.appendChild(emptyState);
     return;
   }
@@ -659,9 +876,8 @@ async function renderOutline(items) {
 
 function bindEvents() {
   state.eventBus.on("pagesinit", () => {
-    state.pdfViewer.currentScaleValue = zoomSelectElement.value;
+    applyResponsiveScale();
     updatePageStatus(state.pdfViewer.currentPageNumber);
-    queueSyncFrameHeight();
   });
 
   state.eventBus.on("pagechanging", (event) => {
@@ -676,12 +892,15 @@ function bindEvents() {
     queueSyncFrameHeight();
   });
 
-  state.eventBus.on("updatefindmatchescount", (event) => {
-    updateSearchStatus(event.matchesCount);
+  state.eventBus.on("updatefindmatchescount", () => {
+    updateSearchStatus(getViewerMatchesCount());
   });
 
   state.eventBus.on("updatefindcontrolstate", (event) => {
-    updateSearchStatus(event.matchesCount, event.state);
+    updateSearchStatus(getViewerMatchesCount(), event.state);
+    if (event.state !== FindState.NOT_FOUND) {
+      queueScrollToSelectedMatch();
+    }
   });
 
   previousPageButton.addEventListener("click", () => {
@@ -692,13 +911,9 @@ function bindEvents() {
     changePage((pdfViewer) => pdfViewer.nextPage());
   });
 
-  zoomSelectElement.addEventListener("change", () => {
-    if (!state.pdfViewer) {
-      return;
-    }
-    state.pdfViewer.currentScaleValue = zoomSelectElement.value;
-    queueSyncFrameHeight();
-  });
+  window.addEventListener("resize", handleWindowResize);
+  window.addEventListener("resize", queueToolbarPinUpdate);
+  window.addEventListener("scroll", queueToolbarPinUpdate, { passive: true });
 
   searchSubmitButton.addEventListener("click", () => {
     state.searchQuery = searchInputElement.value.trim();
@@ -706,10 +921,15 @@ function bindEvents() {
     if (!state.searchQuery) {
       state.eventBus.dispatch("findbarclose", { source: window });
       resetExactSearchState();
+      setSearchActiveState(false);
       updateSearchStatus();
       return;
     }
 
+    setSearchActiveState(true);
+    if (amendmentsGroupElement?.open) {
+      amendmentsGroupElement.open = false;
+    }
     void updateExactSearchCount(state.searchQuery);
     dispatchFindCommand("");
   });
@@ -745,6 +965,7 @@ async function initDocumentViewer() {
       linkService: state.linkService,
       findController: state.findController,
       textLayerMode: 1,
+      useOnlyCssZoom: true,
       removePageBorders: true,
     });
 
