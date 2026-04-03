@@ -1,2 +1,4 @@
-AddType text/javascript .mjs
-AddType application/pdf .pdf
+<IfModule mime_module>
+    AddType text/javascript .mjs
+    AddType application/pdf .pdf
+</IfModule>
