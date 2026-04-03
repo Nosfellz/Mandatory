@@ -1,6 +1,6 @@
 const categories = {
   1: {
-    title: "Catégorie 1",
+    title: "Cat. 1",
     items: [
       { label: "Rappel à la loi", min: 450, max: 1350 },
       { label: "Infraction aux règles de circulation", min: 500, max: 1500 },
@@ -15,7 +15,7 @@ const categories = {
     ]
   },
   2: {
-    title: "Catégorie 2",
+    title: "Cat. 2",
     items: [
       { label: "Détention d'objets prohibés", min: 1400, max: 4200 },
       { label: "Extorsion", min: 1500, max: 4500 },
@@ -35,7 +35,7 @@ const categories = {
     ]
   },
   3: {
-    title: "Catégorie 3",
+    title: "Cat. 3",
     items: [
       { label: "Divulgations et/ou vol d'informations confidentielles", min: 6000, max: 18000 },
       { label: "Usurpation d'identité et/ou impersonation", min: 6000, max: 18000 },
@@ -56,7 +56,7 @@ const categories = {
     ]
   },
   4: {
-    title: "Catégorie 4",
+    title: "Cat. 4",
     items: [
       { label: "Corruption ou chantage", min: 17500, max: 52500 },
       { label: "Enlèvement ou prise d'otage", min: 22000, max: 66000 },
