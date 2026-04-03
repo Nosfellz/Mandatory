@@ -1751,7 +1751,7 @@ body::before {
 
 .result-summary {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
   margin-bottom: 14px;
 }
@@ -1773,6 +1773,10 @@ body::before {
   border-radius: inherit;
   opacity: 0.16;
   pointer-events: none;
+}
+
+.summary-metric-min::before {
+  background: linear-gradient(135deg, rgba(240,191,140,0.46), rgba(240,191,140,0));
 }
 
 .summary-metric-max::before {
@@ -1807,6 +1811,27 @@ body::before {
 
 .summary-metric-total .summary-value {
   color: #84efb5;
+}
+
+.summary-metric-min .summary-value {
+  color: #f0bf8c;
+}
+
+.summary-metric-min,
+.summary-metric-max {
+  padding: 9px 12px 10px;
+}
+
+.summary-metric-min .summary-label,
+.summary-metric-max .summary-label {
+  font-size: 0.66rem;
+  margin-top: 2px;
+}
+
+.summary-metric-min .summary-value,
+.summary-metric-max .summary-value {
+  font-size: clamp(0.96rem, 1.35vw, 1.18rem);
+  margin-top: 2px;
 }
 
 .offense-categories {

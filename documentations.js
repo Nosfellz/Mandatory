@@ -12,9 +12,9 @@ const groupClassByKey = {
 };
 
 function showEmptyPreview(message = "Choisis un document dans le menu de gauche pour afficher son aperçu dans cet espace.") {
-  previewGroup.setAttribute("hidden", "hidden");
-  previewLink.setAttribute("hidden", "hidden");
-  previewNote.setAttribute("hidden", "hidden");
+  previewGroup.hidden = true;
+  previewLink.hidden = true;
+  previewNote.hidden = true;
   previewEmpty.hidden = false;
   previewPanel?.classList.add("is-empty");
 
@@ -37,9 +37,9 @@ function updatePreview(item) {
   previewImage.removeAttribute("src");
   previewImage.alt = imageAlt;
   previewGroup.textContent = imageGroup;
-  previewGroup.removeAttribute("hidden");
+  previewGroup.hidden = false;
   previewLink.href = imageLink;
-  previewLink.removeAttribute("hidden");
+  previewLink.hidden = false;
   previewEmpty.hidden = true;
   previewPanel?.classList.remove("is-empty");
   previewGroup.classList.remove(
@@ -50,9 +50,9 @@ function updatePreview(item) {
   previewGroup.classList.add(groupClassByKey[imageGroupKey] ?? "gallery-section-tag-presidence");
   previewNote.textContent = imageNote ?? "";
   if (imageNote) {
-    previewNote.removeAttribute("hidden");
+    previewNote.hidden = false;
   } else {
-    previewNote.setAttribute("hidden", "hidden");
+    previewNote.hidden = true;
   }
   previewImage.src = imageSrc;
 

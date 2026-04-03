@@ -225,6 +225,7 @@ function updateSelectedSummary() {
   const selected = getSelectedOffenses();
   const resultCard = document.querySelector('.result-card');
   const title = document.getElementById('result-title');
+  const minInfo = document.getElementById('result-min-info');
   const maxInfo = document.getElementById('result-max-info');
   const range = document.getElementById('result-range');
   const items = document.getElementById('result-items');
@@ -235,6 +236,7 @@ function updateSelectedSummary() {
       resultCard.classList.add('is-empty');
     }
     title.textContent = '';
+    minInfo.textContent = '';
     maxInfo.textContent = '';
     range.textContent = '';
     items.innerHTML = '';
@@ -362,15 +364,23 @@ function updateSelectedSummary() {
     items.appendChild(wrapper);
   });
 
+  const minEstimate = selected.reduce(function (sum, entry) {
+    if (!entry.settings.include) {
+      return sum;
+    }
+    return sum + entry.offense.min;
+  }, 0);
+
   const maxEstimate = selected.reduce(function (sum, entry) {
     if (!entry.settings.include) {
       return sum;
     }
-    return sum + entry.offense.max * entry.settings.multiplier;
-  }, 0) * globalMultiplier;
+    return sum + entry.offense.max;
+  }, 0);
 
   const total = subtotal * globalMultiplier;
   renderSelectedBreakdown(title, selected);
+  minInfo.textContent = formatAmount(minEstimate);
   maxInfo.textContent = formatAmount(maxEstimate);
   range.textContent = formatAmount(total);
 
