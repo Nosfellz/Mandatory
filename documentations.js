@@ -11,6 +11,19 @@ const groupClassByKey = {
   government: "gallery-section-tag-government",
 };
 
+function showEmptyPreview(message = "Choisis un document dans le menu de gauche pour afficher son aperçu dans cet espace.") {
+  previewGroup.setAttribute("hidden", "hidden");
+  previewLink.setAttribute("hidden", "hidden");
+  previewNote.setAttribute("hidden", "hidden");
+  previewEmpty.hidden = false;
+  previewPanel?.classList.add("is-empty");
+
+  const emptyText = previewEmpty?.querySelector(".gallery-preview-empty-text");
+  if (emptyText) {
+    emptyText.textContent = message;
+  }
+}
+
 function updatePreview(item) {
   const {
     imageSrc,
@@ -21,12 +34,12 @@ function updatePreview(item) {
     imageNote,
   } = item.dataset;
 
-  previewImage.src = imageSrc;
+  previewImage.removeAttribute("src");
   previewImage.alt = imageAlt;
   previewGroup.textContent = imageGroup;
-  previewGroup.hidden = false;
+  previewGroup.removeAttribute("hidden");
   previewLink.href = imageLink;
-  previewLink.hidden = false;
+  previewLink.removeAttribute("hidden");
   previewEmpty.hidden = true;
   previewPanel?.classList.remove("is-empty");
   previewGroup.classList.remove(
@@ -36,12 +49,21 @@ function updatePreview(item) {
   );
   previewGroup.classList.add(groupClassByKey[imageGroupKey] ?? "gallery-section-tag-presidence");
   previewNote.textContent = imageNote ?? "";
-  previewNote.hidden = !imageNote;
+  if (imageNote) {
+    previewNote.removeAttribute("hidden");
+  } else {
+    previewNote.setAttribute("hidden", "hidden");
+  }
+  previewImage.src = imageSrc;
 
   menuItems.forEach((button) => {
     button.classList.toggle("is-active", button === item);
   });
 }
+
+previewImage.addEventListener("error", () => {
+  showEmptyPreview("Impossible de charger l'image sélectionnée. Vérifie que le fichier est bien présent sur l'hébergement.");
+});
 
 menuItems.forEach((item) => {
   item.addEventListener("click", () => updatePreview(item));
