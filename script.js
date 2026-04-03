@@ -78,6 +78,39 @@ function getShortCategoryTitle(categoryId) {
   return 'Cat. ' + categoryId;
 }
 
+function clampAmount(value, minAmount, maxAmount) {
+  if (!Number.isFinite(value)) {
+    return minAmount;
+  }
+
+  return Math.min(Math.max(Math.round(value), minAmount), maxAmount);
+}
+
+function clampAmountToMax(value, maxAmount) {
+  if (!Number.isFinite(value)) {
+    return "";
+  }
+
+  return String(Math.min(Math.round(value), maxAmount));
+}
+
+function parseAmountInputValue(value) {
+  const normalizedValue = String(value ?? '').replace(/\s+/g, '').trim();
+  if (!normalizedValue) {
+    return NaN;
+  }
+
+  return Number(normalizedValue);
+}
+
+function formatAmountInputValue(value) {
+  if (!Number.isFinite(value)) {
+    return '';
+  }
+
+  return Math.round(value).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+}
+
 function formatAmount(amount) {
   return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + '$';
 }
@@ -295,43 +328,60 @@ function updateSelectedSummary() {
     rangeText.className = 'result-item-meta';
     rangeText.textContent = formatAmount(minAmount) + ' - ' + formatAmount(maxAmount);
 
-    const amountSelect = document.createElement('select');
-    amountSelect.className = 'result-amount-select';
-    amountSelect.dataset.key = entry.key;
-    let currentAmount = minAmount;
-    while (currentAmount <= maxAmount) {
-      const option = document.createElement('option');
-      option.value = currentAmount;
-      option.textContent = formatAmount(currentAmount);
-      if (currentAmount === amount) {
-        option.selected = true;
+    const amountInput = document.createElement('input');
+    amountInput.type = 'text';
+    amountInput.className = 'result-amount-input';
+    amountInput.dataset.key = entry.key;
+    amountInput.inputMode = 'numeric';
+    amountInput.value = formatAmountInputValue(clampAmount(amount, minAmount, maxAmount));
+    amountInput.placeholder = formatAmountInputValue(minAmount);
+    amountInput.disabled = !included;
+    amountInput.setAttribute('aria-label', "Montant appliqué pour " + entry.offense.label);
+    amountInput.title = "Saisie libre entre " + formatAmount(minAmount) + " et " + formatAmount(maxAmount);
+
+    amountInput.addEventListener('input', function () {
+      const rawValue = this.value.trim();
+      if (!rawValue) {
+        return;
       }
-      amountSelect.appendChild(option);
-      currentAmount += 500;
-    }
-    if ((maxAmount - minAmount) % 500 !== 0 && currentAmount - 500 !== maxAmount) {
-      const option = document.createElement('option');
-      option.value = maxAmount;
-      option.textContent = formatAmount(maxAmount);
-      if (amount === maxAmount) {
-        option.selected = true;
+
+      const parsedValue = parseAmountInputValue(rawValue);
+      if (!Number.isFinite(parsedValue)) {
+        this.value = '';
+        return;
       }
-      amountSelect.appendChild(option);
-    }
-    amountSelect.disabled = !included;
+
+      const limitedValue = Number(clampAmountToMax(parsedValue, maxAmount));
+      this.value = formatAmountInputValue(Number.isFinite(limitedValue) ? limitedValue : parsedValue);
+    });
+
+    const amountField = document.createElement('div');
+    amountField.className = 'result-amount-field';
+
+    const amountSuffix = document.createElement('span');
+    amountSuffix.className = 'result-amount-suffix';
+    amountSuffix.textContent = '$';
+
+    amountField.appendChild(amountInput);
+    amountField.appendChild(amountSuffix);
+
+    const amountControl = document.createElement('div');
+    amountControl.className = 'result-amount-control';
+    amountControl.appendChild(amountField);
 
     const multiplierSelect = document.createElement('select');
     multiplierSelect.className = 'result-multiplier-select';
     multiplierSelect.dataset.key = entry.key;
-    [1, 2, 3, 4, 5, 6].forEach(function (value) {
+    for (let value = 1; value <= 6.001; value += 0.5) {
       const option = document.createElement('option');
-      option.value = value;
-      option.textContent = value + 'x';
-      if (multiplier === value) {
+      const normalizedValue = Number(value.toFixed(1));
+      option.value = normalizedValue;
+      option.textContent = normalizedValue + 'x';
+      if (multiplier === normalizedValue) {
         option.selected = true;
       }
       multiplierSelect.appendChild(option);
-    });
+    }
     multiplierSelect.disabled = !included;
 
     checkbox.addEventListener('change', function () {
@@ -342,11 +392,24 @@ function updateSelectedSummary() {
       updateSelectedSummary();
     });
 
-    amountSelect.addEventListener('change', function () {
+    amountInput.addEventListener('change', function () {
+      const settings = offenseSettings.get(this.dataset.key);
+      const parsedValue = parseAmountInputValue(this.value);
+      const nextAmount = clampAmount(parsedValue, minAmount, maxAmount);
+      if (settings) {
+        settings.amount = nextAmount;
+      }
+      this.value = formatAmountInputValue(nextAmount);
+      updateSelectedSummary();
+    });
+
+    amountInput.addEventListener('blur', function () {
+      const nextAmount = clampAmount(parseAmountInputValue(this.value), minAmount, maxAmount);
       const settings = offenseSettings.get(this.dataset.key);
       if (settings) {
-        settings.amount = Number(this.value);
+        settings.amount = nextAmount;
       }
+      this.value = formatAmountInputValue(nextAmount);
       updateSelectedSummary();
     });
 
@@ -361,7 +424,7 @@ function updateSelectedSummary() {
     titleRow.appendChild(checkbox);
     titleRow.appendChild(label);
     titleRow.appendChild(rangeText);
-    titleRow.appendChild(amountSelect);
+    titleRow.appendChild(amountControl);
     titleRow.appendChild(multiplierSelect);
 
     wrapper.appendChild(titleRow);
