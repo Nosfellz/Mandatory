@@ -1,0 +1,5 @@
+---
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/mava2302/public_html/mandatory.gridstack.org/
+    - /usr/bin/rsync -av --delete ./ $DEPLOYPATH
