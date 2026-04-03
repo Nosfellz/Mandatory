@@ -216,7 +216,7 @@ function getSelectedOffenses() {
       selected.push({
         offense,
         categoryId: checkbox.dataset.category,
-        categoryTitle: category.title,
+        categoryTitle: getShortCategoryTitle(checkbox.dataset.category),
         key,
         settings: offenseSettings.get(key)
       });
