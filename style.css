@@ -1068,6 +1068,11 @@ body::before {
 
 .home-focus-header {
   margin: 4px 306px 8px;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  width: auto;
 }
 
 .home-focus-last-update {
@@ -1085,8 +1090,11 @@ body::before {
 .home-focus-badge-live {
   position: relative;
   gap: 8px;
-  padding: 4px 14px 4px 12px;
+  min-height: 26px;
+  padding: 4px 10px 4px 9px;
   color: #fff1ec;
+  font-size: 0.58rem;
+  letter-spacing: 0.1em;
   background: linear-gradient(180deg, rgba(156,77,52,0.92), rgba(106,47,32,0.96));
   border-color: rgba(214,143,92,0.42);
   box-shadow:
