@@ -2518,7 +2518,7 @@ body::before {
   border-radius: 12px;
   background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.025));
   color: var(--ivory);
-  font-size: 0.62rem;
+  font-size: 0.745rem;
   font-weight: 600;
   letter-spacing: 0.01em;
   text-align: center;
