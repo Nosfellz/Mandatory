@@ -2360,7 +2360,7 @@ body::before {
   --result-badge-background: rgba(255,255,255,0.08);
   --result-badge-border: rgba(255,255,255,0.14);
   --result-select-border: rgba(255,255,255,0.14);
-  width: min(100%, 780px);
+  width: min(100%, 880px);
   background: linear-gradient(180deg, var(--result-background-top), rgba(255,255,255,0.04));
   border: 1px solid var(--result-border);
   border-left-width: 5px;
@@ -2478,21 +2478,22 @@ body::before {
   align-items: center;
   min-height: 15px;
   padding: 2px 6px;
+  margin-right: 5px;
   border: 1px solid var(--result-badge-border);
   border-radius: 999px;
   background: var(--result-badge-background);
   color: var(--result-badge-text);
-  font-size: 0.62rem;
+  font-size: 0.64rem;
   font-weight: 700;
   letter-spacing: 0.04em;
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 
 .result-amount-control {
   display: grid;
   justify-items: stretch;
-  width: 80px;
+  width: 85px;
 }
 
 .result-amount-field {
