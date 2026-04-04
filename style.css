@@ -2500,7 +2500,7 @@ body::before {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  width: 85px;
+  width: 95px;
   min-height: 28px;
   padding: 0 5px;
   border: 1px solid var(--result-select-border);
@@ -2544,10 +2544,12 @@ body::before {
   font-size: 0.6rem;
   font-weight: 700;
   letter-spacing: 0.01em;
+  margin-right: 5px;
 }
 
 .result-multiplier-select {
   min-width: 76px;
+  margin-left: 10px;
 }
 
 .result-amount-field:focus-within,
