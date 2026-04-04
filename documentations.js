@@ -10,6 +10,7 @@ const groupClassByKey = {
   mandatory: "gallery-section-tag-mandatory",
   government: "gallery-section-tag-government",
 };
+const initialDocId = new URLSearchParams(window.location.search).get("doc");
 
 function showEmptyPreview(message = "Choisis un document dans le menu de gauche pour afficher son aperçu dans cet espace.") {
   previewGroup.hidden = true;
@@ -68,3 +69,10 @@ previewImage.addEventListener("error", () => {
 menuItems.forEach((item) => {
   item.addEventListener("click", () => updatePreview(item));
 });
+
+if (initialDocId) {
+  const matchedItem = menuItems.find((item) => item.dataset.docId === initialDocId);
+  if (matchedItem) {
+    updatePreview(matchedItem);
+  }
+}
