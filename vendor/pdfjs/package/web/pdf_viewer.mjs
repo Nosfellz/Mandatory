@@ -1229,7 +1229,7 @@ class PDFFindController {
     }
     let deferred = Promise.resolve();
     const textOptions = {
-      disableNormalization: true
+      disableNormalization: false
     };
     const pdfDoc = this._pdfDocument;
     for (let i = 0, ii = this._linkService.pagesCount; i < ii; i++) {
@@ -6046,7 +6046,7 @@ class TextLayerBuilder {
     this.#textLayer = new TextLayer({
       textContentSource: this.pdfPage.streamTextContent(textContentParams || {
         includeMarkedContent: true,
-        disableNormalization: true
+        disableNormalization: false
       }),
       container: this.div,
       viewport

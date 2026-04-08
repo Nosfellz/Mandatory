@@ -1,15 +1,15 @@
-import * as pdfjsLib from "./vendor/pdfjs/package/build/pdf.mjs";
+import * as pdfjsLib from "./vendor/pdfjs/package/build/pdf.mjs?v=20260406-1";
 import {
   EventBus,
   FindState,
   PDFFindController,
   PDFLinkService,
   PDFSinglePageViewer,
-} from "./vendor/pdfjs/package/web/pdf_viewer.mjs";
+} from "./vendor/pdfjs/package/web/pdf_viewer.mjs?v=20260406-1";
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = "./vendor/pdfjs/package/build/pdf.worker.mjs";
+pdfjsLib.GlobalWorkerOptions.workerSrc = "./vendor/pdfjs/package/build/pdf.worker.mjs?v=20260406-1";
 
-const PDF_URL = "docs/les-lois-fevrier-2026.pdf";
+const PDF_URL = "docs/les-lois-avril-2026.pdf";
 const frameElement = document.getElementById("document-frame");
 const pageStatusElement = document.getElementById("page-status");
 const searchStatusElement = document.getElementById("search-status");
@@ -25,6 +25,7 @@ const searchGroupElement = document.querySelector(".document-toolbar-group-searc
 const amendmentsGroupElement = document.querySelector(".document-toolbar-group-amendments");
 const outlineContainerElement = document.getElementById("document-outline");
 const documentHeaderElement = document.querySelector(".document-viewer-header");
+const pageCountBadgeElement = document.querySelector(".document-viewer-badge");
 const viewerContainerElement = document.getElementById("viewerContainer");
 const viewerElement = document.getElementById("viewer");
 
@@ -39,9 +40,12 @@ const state = {
   resizeTimeout: 0,
   selectedMatchScrollRaf: 0,
   selectedMatchScrollTimeout: 0,
+  searchNavigationCheckTimeout: 0,
   toolbarPinRaf: 0,
   pageHeaderCache: new Map(),
   pageTextCache: new Map(),
+  pageLineCache: new Map(),
+  articleSearchHits: new Map(),
   preferredZoomValue: "auto-fit",
   exactSearch: {
     query: "",
@@ -49,7 +53,26 @@ const state = {
     ready: true,
     token: 0,
   },
+  pendingSearchNavigation: null,
 };
+
+const FIXED_AMENDMENT_PAGES = [
+  { label: "1st Amd", pageNumber: 1 },
+  { label: "2nd Amd", pageNumber: 3 },
+  { label: "3rd Amd", pageNumber: 5 },
+  { label: "4th Amd", pageNumber: 7 },
+  { label: "5th Amd", pageNumber: 10 },
+  { label: "6th Amd", pageNumber: 12 },
+  { label: "7th Amd", pageNumber: 15 },
+  { label: "8th Amd", pageNumber: 18 },
+  { label: "9th Amd", pageNumber: 21 },
+  { label: "10th Amd", pageNumber: 23 },
+  { label: "11th Amd", pageNumber: 25 },
+  { label: "12th Amd", pageNumber: 27 },
+  { label: "13th Amd", pageNumber: 29 },
+  { label: "14th Amd", pageNumber: 31 },
+  { label: "15th Amd", pageNumber: 33 },
+];
 
 function getNormalizedSearchQuery(value = state.searchQuery) {
   return normalizeSearchText(value);
@@ -73,6 +96,14 @@ function updatePageStatus(pageNumber = 1) {
   pageStatusElement.textContent = `Page ${pageNumber} / ${state.pdfDocument.numPages}`;
 }
 
+function updatePageCountBadge() {
+  if (!pageCountBadgeElement || !state.pdfDocument) {
+    return;
+  }
+
+  pageCountBadgeElement.textContent = `${state.pdfDocument.numPages} pages`;
+}
+
 function updateSearchStatus(matchesCount = { current: 0, total: 0 }, findState = null) {
   const normalizedQuery = getNormalizedSearchQuery();
 
@@ -80,15 +111,7 @@ function updateSearchStatus(matchesCount = { current: 0, total: 0 }, findState =
     searchStatusElement.textContent = "Aucune recherche";
     return;
   }
-
-  if (state.exactSearch.query === normalizedQuery && !state.exactSearch.ready) {
-    searchStatusElement.textContent = "Recherche en cours...";
-    return;
-  }
-
-  const total = state.exactSearch.query === normalizedQuery && state.exactSearch.ready
-    ? state.exactSearch.total
-    : matchesCount.total;
+  const total = matchesCount.total ?? 0;
 
   if (findState === FindState.NOT_FOUND || total === 0) {
     searchStatusElement.textContent = "Aucun résultat";
@@ -106,14 +129,6 @@ toolbarElement?.insertAdjacentElement("afterend", toolbarPlaceholderElement);
 
 function setSearchActiveState(isActive) {
   searchGroupElement?.classList.toggle("is-search-active", isActive);
-}
-
-function getLogicalMatchIndex(rawIndex = 0) {
-  if (rawIndex <= 0) {
-    return 0;
-  }
-
-  return Math.ceil(rawIndex / 2);
 }
 
 function dispatchFindCommand(type = "", findPrevious = false) {
@@ -235,33 +250,7 @@ function unpinToolbar() {
 }
 
 function updateToolbarPin() {
-  if (!toolbarElement || !stageElement) {
-    return;
-  }
-
-  const isCompactViewport = window.matchMedia("(max-width: 860px)").matches;
-  if (isCompactViewport) {
-    unpinToolbar();
-    return;
-  }
-
-  const toolbarHeight = toolbarElement.offsetHeight;
-  const stageRect = stageElement.getBoundingClientRect();
-  const toolbarRect = toolbarPlaceholderElement.hidden
-    ? toolbarElement.getBoundingClientRect()
-    : toolbarPlaceholderElement.getBoundingClientRect();
-  const shouldPin = stageRect.top <= 16 && stageRect.bottom > toolbarHeight + 16;
-
-  if (!shouldPin) {
-    unpinToolbar();
-    return;
-  }
-
-  toolbarPlaceholderElement.hidden = false;
-  toolbarPlaceholderElement.style.height = `${toolbarHeight}px`;
-  toolbarElement.classList.add("is-fixed");
-  toolbarElement.style.width = `${toolbarRect.width}px`;
-  toolbarElement.style.left = `${toolbarRect.left}px`;
+  unpinToolbar();
 }
 
 function queueToolbarPinUpdate() {
@@ -281,18 +270,29 @@ function scrollToSelectedMatch() {
     return false;
   }
 
-  const highlightRect = selectedHighlight.getBoundingClientRect();
-  const viewerRect = viewerContainerElement.getBoundingClientRect();
-  const preferredTopOffset = 150;
-  const desiredTop = Math.max(
-    window.scrollY + highlightRect.top - preferredTopOffset,
-    window.scrollY + viewerRect.top - 40
-  );
-
-  window.scrollTo({
+  selectedHighlight.scrollIntoView({
     behavior: "auto",
-    top: desiredTop,
+    block: "nearest",
+    inline: "nearest",
   });
+
+  const highlightRect = selectedHighlight.getBoundingClientRect();
+  const toolbarOffset = toolbarElement?.classList.contains("is-fixed")
+    ? (toolbarElement.getBoundingClientRect().height + 24)
+    : 32;
+  const viewportTopLimit = toolbarOffset + 2;
+  let delta = 0;
+
+  if (highlightRect.top < viewportTopLimit) {
+    delta = highlightRect.top - viewportTopLimit;
+  }
+
+  if (Math.abs(delta) > 1) {
+    window.scrollBy({
+      behavior: "auto",
+      top: delta,
+    });
+  }
 
   return true;
 }
@@ -310,18 +310,238 @@ function clearQueuedSelectedMatchScroll() {
 }
 
 function queueScrollToSelectedMatch(attempt = 0) {
-  clearQueuedSelectedMatchScroll();
+  if (attempt === 0) {
+    clearQueuedSelectedMatchScroll();
+  }
 
   state.selectedMatchScrollRaf = requestAnimationFrame(() => {
     state.selectedMatchScrollRaf = requestAnimationFrame(() => {
-      const hasScrolled = scrollToSelectedMatch();
+      scrollToSelectedMatch();
       state.selectedMatchScrollRaf = 0;
 
-      if (!hasScrolled && attempt < 6) {
+      if (attempt < 8) {
         state.selectedMatchScrollTimeout = window.setTimeout(() => {
           queueScrollToSelectedMatch(attempt + 1);
-        }, 60);
+        }, 75);
       }
+    });
+  });
+}
+
+function getSelectedMatchSignature() {
+  const selectedHighlight = viewerElement.querySelector(".textLayer .highlight.selected");
+  if (!selectedHighlight) {
+    return "";
+  }
+
+  const rect = selectedHighlight.getBoundingClientRect();
+  const pageNumber = selectedHighlight.closest(".page")?.dataset.pageNumber
+    ?? String(state.pdfViewer?.currentPageNumber ?? "");
+
+  return [
+    pageNumber,
+    Math.round(rect.left),
+    Math.round(rect.top),
+    Math.round(rect.width),
+    Math.round(rect.height),
+    (selectedHighlight.textContent ?? "").trim().toLowerCase(),
+  ].join("|");
+}
+
+function clearPendingSearchNavigation() {
+  state.pendingSearchNavigation = null;
+
+  if (state.searchNavigationCheckTimeout) {
+    clearTimeout(state.searchNavigationCheckTimeout);
+    state.searchNavigationCheckTimeout = 0;
+  }
+}
+
+function queueValidateSearchNavigation() {
+  if (!state.pendingSearchNavigation) {
+    return;
+  }
+
+  if (state.searchNavigationCheckTimeout) {
+    clearTimeout(state.searchNavigationCheckTimeout);
+  }
+
+  state.searchNavigationCheckTimeout = window.setTimeout(() => {
+    const pendingNavigation = state.pendingSearchNavigation;
+    state.searchNavigationCheckTimeout = 0;
+
+    if (!pendingNavigation) {
+      return;
+    }
+
+    const currentSignature = getSelectedMatchSignature();
+
+    if (!currentSignature) {
+      if (pendingNavigation.attempts >= 2) {
+        clearPendingSearchNavigation();
+      } else {
+        queueValidateSearchNavigation();
+      }
+      return;
+    }
+
+    if (currentSignature !== pendingNavigation.baselineSignature) {
+      clearPendingSearchNavigation();
+      return;
+    }
+
+    if (pendingNavigation.attempts >= 2) {
+      clearPendingSearchNavigation();
+      return;
+    }
+
+    pendingNavigation.attempts += 1;
+    dispatchFindCommand("again", pendingNavigation.findPrevious);
+    queueScrollToSelectedMatch();
+    queueValidateSearchNavigation();
+  }, 120);
+}
+
+function preserveToolbarViewportPosition(callback) {
+  if (!toolbarElement) {
+    callback();
+    return;
+  }
+
+  const previousTop = toolbarElement.getBoundingClientRect().top;
+  callback();
+
+  requestAnimationFrame(() => {
+    const nextTop = toolbarElement.getBoundingClientRect().top;
+    const delta = nextTop - previousTop;
+
+    if (Math.abs(delta) > 1) {
+      window.scrollBy({
+        behavior: "auto",
+        top: delta,
+      });
+    }
+
+    queueToolbarPinUpdate();
+  });
+}
+
+function getSiblingText(node) {
+  return node?.nodeType === Node.TEXT_NODE ? node.textContent ?? "" : "";
+}
+
+function moveHighlightText(highlightElement, beforeText, matchText, afterText) {
+  if (beforeText) {
+    highlightElement.before(document.createTextNode(beforeText));
+  }
+
+  highlightElement.textContent = matchText;
+
+  if (afterText) {
+    highlightElement.after(document.createTextNode(afterText));
+  }
+}
+
+function normalizeHighlightToQuery(highlightElement, query) {
+  const content = highlightElement.textContent ?? "";
+
+  if (!content || !query) {
+    return;
+  }
+
+  const lowerContent = content.toLowerCase();
+  const lowerQuery = query.toLowerCase();
+  const directIndex = lowerContent.indexOf(lowerQuery);
+
+  if (directIndex !== -1) {
+    moveHighlightText(
+      highlightElement,
+      content.slice(0, directIndex),
+      content.slice(directIndex, directIndex + query.length),
+      content.slice(directIndex + query.length)
+    );
+    return;
+  }
+
+  const previousText = getSiblingText(highlightElement.previousSibling);
+  const nextText = getSiblingText(highlightElement.nextSibling);
+  const combinedContent = `${previousText}${content}${nextText}`;
+  const combinedIndex = combinedContent.toLowerCase().indexOf(lowerQuery);
+
+  if (combinedIndex === -1) {
+    return;
+  }
+
+  const combinedMatchEnd = combinedIndex + query.length;
+  const previousLength = previousText.length;
+  const contentEnd = previousLength + content.length;
+  const matchStartInHighlight = Math.max(combinedIndex - previousLength, 0);
+  const matchEndInHighlight = Math.min(combinedMatchEnd - previousLength, content.length);
+  const prefixInsideHighlight = content.slice(0, matchStartInHighlight);
+  const matchInsideHighlight = content.slice(matchStartInHighlight, matchEndInHighlight);
+  const suffixInsideHighlight = content.slice(matchEndInHighlight);
+  const missingPrefix = combinedIndex < previousLength
+    ? previousText.slice(combinedIndex, previousLength)
+    : "";
+  const missingSuffix = combinedMatchEnd > contentEnd
+    ? nextText.slice(0, combinedMatchEnd - contentEnd)
+    : "";
+
+  if (missingPrefix && highlightElement.previousSibling?.nodeType === Node.TEXT_NODE) {
+    highlightElement.previousSibling.textContent = previousText.slice(0, combinedIndex);
+  }
+
+  if (missingSuffix && highlightElement.nextSibling?.nodeType === Node.TEXT_NODE) {
+    highlightElement.nextSibling.textContent = nextText.slice(combinedMatchEnd - contentEnd);
+  }
+
+  moveHighlightText(
+    highlightElement,
+    prefixInsideHighlight,
+    `${missingPrefix}${matchInsideHighlight}${missingSuffix}`,
+    suffixInsideHighlight
+  );
+}
+
+function trimHighlightWhitespace() {
+  const rawQuery = (state.findController?.state?.query ?? state.searchQuery ?? "").trim();
+  const singleWordQuery = rawQuery && !/\s/.test(rawQuery) ? rawQuery : "";
+  const highlightElements = viewerElement.querySelectorAll(".textLayer .highlight.appended");
+
+  highlightElements.forEach((highlightElement) => {
+    if (singleWordQuery) {
+      normalizeHighlightToQuery(highlightElement, singleWordQuery);
+    }
+
+    const content = highlightElement.textContent ?? "";
+    if (!content) {
+      return;
+    }
+
+    const leadingWhitespace = content.match(/^\s+/)?.[0] ?? "";
+    const trailingWhitespace = content.match(/\s+$/)?.[0] ?? "";
+    const trimmedContent = content.trim();
+
+    if (!trimmedContent || (!leadingWhitespace && !trailingWhitespace)) {
+      return;
+    }
+
+    if (leadingWhitespace) {
+      highlightElement.before(document.createTextNode(leadingWhitespace));
+    }
+
+    highlightElement.textContent = trimmedContent;
+
+    if (trailingWhitespace) {
+      highlightElement.after(document.createTextNode(trailingWhitespace));
+    }
+  });
+}
+
+function queueTrimHighlightWhitespace() {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      trimHighlightWhitespace();
     });
   });
 }
@@ -400,63 +620,53 @@ function normalizeSearchText(value) {
   return value.toLowerCase().replace(/\s+/g, " ").trim();
 }
 
+function normalizeArticleText(value) {
+  return value
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function normalizeLooseMatchText(value) {
+  return value
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, "");
+}
+
+function getArticleMatchKey(value) {
+  const normalizedValue = normalizeArticleText(value);
+  const match = normalizedValue.match(/^article\s+(\d+(?:\s+(?:bis|ter|quater|quinquies|sexies))?)/i);
+
+  if (!match) {
+    return normalizedValue;
+  }
+
+  return `article ${match[1]}`;
+}
+
+function getArticleDisplayPrefix(value) {
+  const trimmedValue = value.trim();
+  const articleNumberMatch = trimmedValue.match(/^article\s+\d+/i);
+
+  if (articleNumberMatch) {
+    return articleNumberMatch[0];
+  }
+
+  const firstPeriodIndex = trimmedValue.indexOf(".");
+  if (firstPeriodIndex !== -1) {
+    return trimmedValue.slice(0, firstPeriodIndex + 1);
+  }
+
+  return trimmedValue;
+}
+
 function isSearchWordCharacter(value = "") {
   return /[\p{L}\p{N}]/u.test(value);
 }
 
 function isSingleWordSearchQuery(value) {
   return value.length > 0 && !/\s/.test(value);
-}
-
-function countExactOccurrences(text, query, entireWord = false) {
-  if (!text || !query) {
-    return 0;
-  }
-
-  let count = 0;
-  let startIndex = 0;
-
-  while (startIndex < text.length) {
-    const matchIndex = text.indexOf(query, startIndex);
-
-    if (matchIndex === -1) {
-      break;
-    }
-
-    const matchEnd = matchIndex + query.length;
-    const previousCharacter = text[matchIndex - 1] ?? "";
-    const nextCharacter = text[matchEnd] ?? "";
-    const hasWordBoundary = !entireWord
-      || (!isSearchWordCharacter(previousCharacter) && !isSearchWordCharacter(nextCharacter));
-
-    if (hasWordBoundary) {
-      count += 1;
-      startIndex = matchEnd;
-      continue;
-    }
-
-    startIndex = matchIndex + 1;
-  }
-
-  return count;
-}
-
-function dedupeSearchLines(lines) {
-  const normalizedLines = lines.map((line) => normalizeSearchText(line)).filter(Boolean);
-  const uniqueConsecutiveLines = normalizedLines.filter((line, index) => line !== normalizedLines[index - 1]);
-  const halfLength = uniqueConsecutiveLines.length / 2;
-
-  if (Number.isInteger(halfLength) && halfLength > 0) {
-    const firstHalf = uniqueConsecutiveLines.slice(0, halfLength);
-    const secondHalf = uniqueConsecutiveLines.slice(halfLength);
-    const isDuplicatedSequence = firstHalf.every((line, index) => line === secondHalf[index]);
-
-    if (isDuplicatedSequence) {
-      return firstHalf;
-    }
-  }
-
-  return uniqueConsecutiveLines;
 }
 
 function extractPageLines(items) {
@@ -486,6 +696,50 @@ function extractPageLines(items) {
     .sort((a, b) => b.y - a.y)
     .map((line) => line.items.sort((a, b) => a.x - b.x).map((item) => item.text).join(" ").replace(/\s+/g, " ").trim())
     .filter(Boolean);
+}
+
+function extractPageLineData(items) {
+  const tolerance = 2;
+  const lines = [];
+
+  items
+    .filter((item) => typeof item.str === "string" && item.str.trim())
+    .forEach((item) => {
+      const y = item.transform?.[5] ?? 0;
+      const x = item.transform?.[4] ?? 0;
+      const existingLine = lines.find((line) => Math.abs(line.y - y) <= tolerance);
+      const lineItem = {
+        x,
+        y,
+        text: item.str.trim(),
+        width: item.width ?? 0,
+        height: item.height ?? 0,
+        transform: item.transform,
+      };
+
+      if (existingLine) {
+        existingLine.items.push(lineItem);
+        existingLine.y = (existingLine.y + y) / 2;
+        return;
+      }
+
+      lines.push({
+        y,
+        items: [lineItem],
+      });
+    });
+
+  return lines
+    .sort((lineA, lineB) => lineB.y - lineA.y)
+    .map((line) => {
+      const orderedItems = line.items.sort((itemA, itemB) => itemA.x - itemB.x);
+      return {
+        y: line.y,
+        items: orderedItems,
+        text: orderedItems.map((item) => item.text).join(" ").replace(/\s+/g, " ").trim(),
+      };
+    })
+    .filter((line) => line.text);
 }
 
 async function getPageHeader(pageNumber, fallbackTitle = "") {
@@ -523,9 +777,9 @@ async function getPageHeader(pageNumber, fallbackTitle = "") {
   return normalizedHeader;
 }
 
-async function getPageSearchText(pageNumber) {
+async function getPageSearchLines(pageNumber) {
   if (!pageNumber || !state.pdfDocument) {
-    return "";
+    return [];
   }
 
   if (state.pageTextCache.has(pageNumber)) {
@@ -534,65 +788,256 @@ async function getPageSearchText(pageNumber) {
 
   const page = await state.pdfDocument.getPage(pageNumber);
   const textContent = await page.getTextContent();
-  const pageText = dedupeSearchLines(extractPageLines(textContent.items)).join(" ");
+  const lines = extractPageLines(textContent.items);
 
-  state.pageTextCache.set(pageNumber, pageText);
-  return pageText;
+  state.pageTextCache.set(pageNumber, lines);
+  return lines;
 }
 
-async function updateExactSearchCount(query) {
-  const normalizedQuery = getNormalizedSearchQuery(query);
-  const token = state.exactSearch.token + 1;
-
-  state.exactSearch = {
-    query: normalizedQuery,
-    total: 0,
-    ready: false,
-    token,
-  };
-
-  updateSearchStatus();
-
-  if (!normalizedQuery || !state.pdfDocument) {
-    state.exactSearch = {
-      query: normalizedQuery,
-      total: 0,
-      ready: true,
-      token,
-    };
-    updateSearchStatus();
-    return;
+async function getPageLineData(pageNumber) {
+  if (!pageNumber || !state.pdfDocument) {
+    return [];
   }
 
-  const entireWord = isSingleWordSearchQuery(normalizedQuery);
-  let total = 0;
+  if (state.pageLineCache.has(pageNumber)) {
+    return state.pageLineCache.get(pageNumber);
+  }
 
-  for (let pageNumber = 1; pageNumber <= state.pdfDocument.numPages; pageNumber += 1) {
-    const pageText = await getPageSearchText(pageNumber);
+  const page = await state.pdfDocument.getPage(pageNumber);
+  const textContent = await page.getTextContent();
+  const lines = extractPageLineData(textContent.items);
 
-    if (state.exactSearch.token !== token) {
+  state.pageLineCache.set(pageNumber, lines);
+  return lines;
+}
+
+function extractArticleBlocks(lines) {
+  const blocks = [];
+  let currentBlock = null;
+
+  lines.forEach((line) => {
+    const lineText = typeof line === "string" ? line : line?.text ?? "";
+    const trimmedLine = lineText.trim();
+
+    if (!trimmedLine) {
       return;
     }
 
-    total += countExactOccurrences(pageText, normalizedQuery, entireWord);
+    if (/^article\b/i.test(trimmedLine)) {
+      if (currentBlock) {
+        blocks.push(currentBlock);
+      }
+
+      currentBlock = {
+        label: trimmedLine,
+        key: getArticleMatchKey(trimmedLine),
+        content: [trimmedLine],
+      };
+      return;
+    }
+
+    if (currentBlock) {
+      currentBlock.content.push(trimmedLine);
+    }
+  });
+
+  if (currentBlock) {
+    blocks.push(currentBlock);
   }
 
-  if (total > 0) {
-    total = Math.ceil(total / 2);
-  }
+  return blocks;
+}
 
-  if (state.exactSearch.token !== token) {
+async function updateArticleSearchHits(query) {
+  const normalizedQuery = normalizeSearchText(query);
+  state.articleSearchHits.clear();
+
+  if (!normalizedQuery || !state.pdfDocument) {
     return;
   }
 
-  state.exactSearch = {
-    query: normalizedQuery,
-    total,
-    ready: true,
-    token,
-  };
+  for (let pageNumber = 1; pageNumber <= state.pdfDocument.numPages; pageNumber += 1) {
+    const lines = await getPageLineData(pageNumber);
+    const articleKeys = extractArticleBlocks(lines)
+      .filter((block) => normalizeArticleText(block.content.join(" ")).includes(normalizedQuery))
+      .map((block) => block.key);
 
-  updateSearchStatus(getViewerMatchesCount(), state.findController?.state ?? null);
+    if (articleKeys.length > 0) {
+      state.articleSearchHits.set(pageNumber, articleKeys);
+    }
+  }
+}
+
+function collectTextLayerLineGroups(textDivs) {
+  const tolerance = 2;
+  const groups = [];
+
+  textDivs
+    .filter((element) => element instanceof HTMLElement && (element.textContent ?? "").trim())
+    .forEach((element) => {
+      const top = Number.parseFloat(element.style.top || "0");
+      const left = Number.parseFloat(element.style.left || "0");
+      const existingGroup = groups.find((group) => Math.abs(group.top - top) <= tolerance);
+
+      if (existingGroup) {
+        existingGroup.elements.push({ left, element });
+        existingGroup.top = (existingGroup.top + top) / 2;
+        return;
+      }
+
+      groups.push({
+        top,
+        elements: [{ left, element }],
+      });
+    });
+
+  return groups
+    .sort((groupA, groupB) => groupA.top - groupB.top)
+    .map((group) => {
+      const orderedElements = group.elements.sort((elementA, elementB) => elementA.left - elementB.left);
+      const rawText = orderedElements.map(({ element }) => element.textContent ?? "").join("");
+
+      return {
+        text: rawText.replace(/\s+/g, " ").trim(),
+        looseText: normalizeLooseMatchText(rawText),
+        elements: orderedElements.map(({ element }) => element),
+      };
+    });
+}
+
+function clearArticleSearchHighlight() {
+  viewerElement
+    .querySelectorAll(".article-search-overlay")
+    .forEach((element) => element.remove());
+
+  viewerElement
+    .querySelectorAll(".textLayer .article-search-hit")
+    .forEach((element) => element.classList.remove("article-search-hit"));
+}
+
+function getLineOverlayBounds(line, viewport) {
+  const prefixText = getArticleDisplayPrefix(line.text);
+  const targetLooseKey = normalizeLooseMatchText(prefixText);
+  const selectedItems = [];
+  let accumulatedLooseText = "";
+
+  for (const item of line.items) {
+    selectedItems.push(item);
+    accumulatedLooseText += normalizeLooseMatchText(item.text);
+
+    if (
+      targetLooseKey
+      && accumulatedLooseText.startsWith(targetLooseKey)
+      && accumulatedLooseText.length >= targetLooseKey.length
+    ) {
+      break;
+    }
+  }
+
+  const transformedItems = (selectedItems.length ? selectedItems : line.items)
+    .filter((item) => Array.isArray(item.transform))
+    .map((item) => {
+      const transformed = pdfjsLib.Util.transform(viewport.transform, item.transform);
+      const left = transformed[4];
+      const height = Math.max(item.height * viewport.scale, Math.abs(transformed[3]), 12);
+      const top = transformed[5] - height;
+      const width = Math.max(item.width * viewport.scale, 12);
+
+      return {
+        left,
+        top,
+        right: left + width,
+        bottom: top + height,
+      };
+    });
+
+  const allTransformedItems = line.items
+    .filter((item) => Array.isArray(item.transform))
+    .map((item) => {
+      const transformed = pdfjsLib.Util.transform(viewport.transform, item.transform);
+      const left = transformed[4];
+      const height = Math.max(item.height * viewport.scale, Math.abs(transformed[3]), 12);
+      const top = transformed[5] - height;
+      const width = Math.max(item.width * viewport.scale, 12);
+
+      return {
+        left,
+        top,
+        right: left + width,
+        bottom: top + height,
+      };
+    });
+
+  if (!transformedItems.length || !allTransformedItems.length) {
+    return null;
+  }
+
+  const fullLeft = Math.min(...allTransformedItems.map((item) => item.left));
+  const fullTop = Math.min(...allTransformedItems.map((item) => item.top));
+  const fullRight = Math.max(...allTransformedItems.map((item) => item.right));
+  const fullBottom = Math.max(...allTransformedItems.map((item) => item.bottom));
+  const selectedRight = Math.max(...transformedItems.map((item) => item.right));
+  const visiblePrefixLength = Math.max(prefixText.length, 1);
+  const visibleLineLength = Math.max(line.text.length, visiblePrefixLength);
+  const estimatedRight = fullLeft + ((fullRight - fullLeft) * (visiblePrefixLength / visibleLineLength));
+  const left = fullLeft;
+  const top = fullTop;
+  const right = Math.min(selectedRight, estimatedRight + 4);
+  const bottom = fullBottom;
+
+  return {
+    left: Math.max(left - 6, 0),
+    top: Math.max(top - 2, 0),
+    width: Math.max(right - left + 12, 24),
+    height: Math.max(bottom - top + 4, 16),
+  };
+}
+
+async function applyArticleSearchHighlight() {
+  clearArticleSearchHighlight();
+
+  if (!state.searchQuery || !state.pdfViewer) {
+    return;
+  }
+
+  const currentPageNumber = state.pdfViewer.currentPageNumber || 1;
+  const articleKeys = state.articleSearchHits.get(currentPageNumber);
+
+  if (!articleKeys?.length) {
+    return;
+  }
+
+  const pageView = state.pdfViewer.getPageView?.(currentPageNumber - 1)
+    ?? state.pdfViewer._pages?.[currentPageNumber - 1]
+    ?? null;
+  const pageElement = pageView?.div ?? null;
+
+  if (!pageElement || !pageView?.viewport) {
+    return;
+  }
+
+  const lines = await getPageLineData(currentPageNumber);
+
+  lines.forEach((line) => {
+    const lineKey = getArticleMatchKey(line.text);
+
+    if (!articleKeys.some((key) => lineKey === key)) {
+      return;
+    }
+
+    const bounds = getLineOverlayBounds(line, pageView.viewport);
+    if (!bounds) {
+      return;
+    }
+
+    const overlay = document.createElement("div");
+    overlay.className = "article-search-overlay";
+    overlay.style.left = `${bounds.left}px`;
+    overlay.style.top = `${bounds.top}px`;
+    overlay.style.width = `${bounds.width}px`;
+    overlay.style.height = `${bounds.height}px`;
+    pageElement.appendChild(overlay);
+  });
 }
 
 function syncSearchQueryFromInput() {
@@ -607,12 +1052,6 @@ function syncSearchQueryFromInput() {
   return state.searchQuery;
 }
 
-function ensureExactSearchCount() {
-  if (state.searchQuery && state.exactSearch.query !== getNormalizedSearchQuery()) {
-    void updateExactSearchCount(state.searchQuery);
-  }
-}
-
 function changePage(changeHandler) {
   if (!state.pdfViewer) {
     return;
@@ -623,27 +1062,14 @@ function changePage(changeHandler) {
 
 function handleSearchNavigation(findPrevious = false) {
   syncSearchQueryFromInput();
-  ensureExactSearchCount();
-  const previousRawMatches = getRawViewerMatchesCount();
-  const previousLogicalCurrent = getLogicalMatchIndex(previousRawMatches.current);
-
+  state.pendingSearchNavigation = {
+    findPrevious,
+    baselineSignature: getSelectedMatchSignature(),
+    attempts: 0,
+  };
   dispatchFindCommand("again", findPrevious);
-
-  requestAnimationFrame(() => {
-    const nextRawMatches = getRawViewerMatchesCount();
-    const nextLogicalCurrent = getLogicalMatchIndex(nextRawMatches.current);
-    const nextLogicalTotal = state.exactSearch.ready && state.exactSearch.query === getNormalizedSearchQuery()
-      ? state.exactSearch.total
-      : getLogicalMatchIndex(nextRawMatches.total);
-
-    const isStuckOnDuplicatedMatch = nextLogicalTotal > 0
-      && nextLogicalCurrent === previousLogicalCurrent
-      && nextRawMatches.current !== previousRawMatches.current;
-
-    if (isStuckOnDuplicatedMatch) {
-      dispatchFindCommand("again", findPrevious);
-    }
-  });
+  queueScrollToSelectedMatch();
+  queueValidateSearchNavigation();
 }
 
 function getRawViewerMatchesCount() {
@@ -674,8 +1100,8 @@ function getViewerMatchesCount() {
   const rawMatches = getRawViewerMatchesCount();
 
   return {
-    current: getLogicalMatchIndex(rawMatches.current),
-    total: getLogicalMatchIndex(rawMatches.total),
+    current: rawMatches.current,
+    total: rawMatches.total,
   };
 }
 
@@ -716,6 +1142,11 @@ function createOutlineItemElement(item) {
   if (item.dest) {
     button.addEventListener("click", () => {
       void state.linkService.goToDestination(item.dest);
+      scrollToDocumentHeader();
+    });
+  } else if (item.pageNumber) {
+    button.addEventListener("click", () => {
+      state.linkService.goToPage(item.pageNumber);
       scrollToDocumentHeader();
     });
   } else {
@@ -791,19 +1222,33 @@ function groupOutlineItems(items) {
   return groups;
 }
 
+function buildFixedOutlineItems() {
+  return FIXED_AMENDMENT_PAGES.map((item) => ({
+    title: "Voir l'amendement",
+    displayTitle: item.label,
+    dest: null,
+    depth: 0,
+    pageNumber: item.pageNumber,
+  }));
+}
+
 async function renderOutline(items) {
+  if (!outlineContainerElement) {
+    return;
+  }
+
   outlineContainerElement.innerHTML = "";
 
-  if (!Array.isArray(items) || items.length === 0) {
+  const flatItems = buildFixedOutlineItems();
+  const groupedItems = groupOutlineItems(flatItems);
+
+  if (flatItems.length === 0) {
     const emptyState = document.createElement("span");
     emptyState.className = "document-outline-empty";
     emptyState.textContent = "Aucun amendement disponible";
     outlineContainerElement.appendChild(emptyState);
     return;
   }
-
-  const flatItems = await flattenOutlineItems(items);
-  const groupedItems = groupOutlineItems(flatItems);
 
   if (flatItems.length === 0) {
     const emptyState = document.createElement("span");
@@ -878,6 +1323,7 @@ function bindEvents() {
   state.eventBus.on("pagesinit", () => {
     applyResponsiveScale();
     updatePageStatus(state.pdfViewer.currentPageNumber);
+    queueToolbarPinUpdate();
   });
 
   state.eventBus.on("pagechanging", (event) => {
@@ -886,6 +1332,7 @@ function bindEvents() {
 
   state.eventBus.on("pagerendered", () => {
     queueSyncFrameHeight();
+    queueToolbarPinUpdate();
   });
 
   state.eventBus.on("scalechanging", () => {
@@ -900,6 +1347,10 @@ function bindEvents() {
     updateSearchStatus(getViewerMatchesCount(), event.state);
     if (event.state !== FindState.NOT_FOUND) {
       queueScrollToSelectedMatch();
+      queueTrimHighlightWhitespace();
+      queueValidateSearchNavigation();
+    } else {
+      clearPendingSearchNavigation();
     }
   });
 
@@ -922,16 +1373,19 @@ function bindEvents() {
       state.eventBus.dispatch("findbarclose", { source: window });
       resetExactSearchState();
       setSearchActiveState(false);
+      clearPendingSearchNavigation();
+      clearArticleSearchHighlight();
       updateSearchStatus();
+      queueToolbarPinUpdate();
       return;
     }
 
     setSearchActiveState(true);
-    if (amendmentsGroupElement?.open) {
-      amendmentsGroupElement.open = false;
-    }
-    void updateExactSearchCount(state.searchQuery);
+    queueToolbarPinUpdate();
+    clearPendingSearchNavigation();
+    clearArticleSearchHighlight();
     dispatchFindCommand("");
+    queueTrimHighlightWhitespace();
   });
 
   previousSearchButton.addEventListener("click", () => {
@@ -947,6 +1401,20 @@ function bindEvents() {
       event.preventDefault();
       searchSubmitButton.click();
     }
+  });
+
+  searchInputElement.addEventListener("input", () => {
+    const nextQuery = searchInputElement.value.trim();
+
+    if (nextQuery) {
+      setSearchActiveState(true);
+      return;
+    }
+
+    state.searchQuery = "";
+    setSearchActiveState(false);
+    clearPendingSearchNavigation();
+    queueToolbarPinUpdate();
   });
 }
 
@@ -974,12 +1442,12 @@ async function initDocumentViewer() {
 
     const loadingTask = pdfjsLib.getDocument(PDF_URL);
     state.pdfDocument = await loadingTask.promise;
-    const outline = await state.pdfDocument.getOutline();
 
     state.pdfViewer.setDocument(state.pdfDocument);
     state.linkService.setDocument(state.pdfDocument, null);
     state.findController.setDocument(state.pdfDocument);
-    await renderOutline(outline);
+    await renderOutline();
+    updatePageCountBadge();
     updatePageStatus(1);
     updateSearchStatus();
   } catch (error) {
