@@ -52,13 +52,14 @@ const categories = {
       { label: "Trafic et/ou contrebande", min: 12000, max: 36000 },
       { label: "Atteinte à l'intégrité physique armée", min: 12000, max: 36000 },
       { label: "Tentative d'enlèvement", min: 12500, max: 37500 },
-      { label: "Intrusion et/ou braquage de la plateforme pétrolière", min: 13000, max: 39000 }
+      { label: "Braquage à la plateforme pétrolière/Yacht", min: 13000, max: 39000 }
     ]
   },
   4: {
     title: "Cat. 4",
     items: [
       { label: "Corruption ou chantage", min: 17500, max: 52500 },
+      { label: "Fraude", min: 20000, max: 60000 },
       { label: "Enlèvement ou prise d'otage", min: 22000, max: 66000 },
       { label: "Attaque à main armée aggravée", min: 22000, max: 66000 },
       { label: "Violation de serment", min: 30000, max: 90000 },
