@@ -25,7 +25,7 @@ const categories = {
       { label: "Braconnage / Cruauté sur animal", min: 2500, max: 7500 },
       { label: "Manquement aux obligations du Serment", min: 2500, max: 7500 },
       { label: "Port d'arme illégal", min: 2500, max: 7500 },
-      { label: "Braquage de commerce local", min: 2800, max: 8400 },
+      { label: "Braquage de commerce local/cambriolage", min: 2800, max: 8400 },
       { label: "Atteinte à l'intégrité morale et/ou physique", min: 3000, max: 9000 },
       { label: "Mise en danger d'autrui", min: 3000, max: 9000 },
       { label: "Organisation d'événement illégal", min: 3200, max: 9600 },
