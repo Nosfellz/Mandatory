@@ -7,31 +7,30 @@ const categories = {
       { label: "Permis ou licence manquant", min: 600, max: 1800 },
       { label: "Dégradation/Destruction de Poubelle", min: 900, max: 2700 },
       { label: "Participation à un événement illégal", min: 900, max: 2700 },
-      { label: "Vol", min: 1000, max: 3000 },
-      { label: "Trouble à l'ordre public", min: 1000, max: 3000 },
-      { label: "Insulte ou outrage", min: 1500, max: 4500 },
-      { label: "Commerce illégal", min: 2000, max: 6000 },
-      { label: "Intrusion illégale sur propriété privée", min: 2000, max: 6000 }
+      { label: "Vol", min: 1300, max: 3900 },
+      { label: "Trouble à l'ordre public", min: 1500, max: 4500 },
+      { label: "Insulte ou outrage", min: 2200, max: 6600 },
+      { label: "Commerce illégal", min: 2500, max: 7500 },
+      { label: "Intrusion illégale sur propriété privée", min: 2500, max: 7500 }
     ]
   },
   2: {
     title: "Cat. 2",
     items: [
-      { label: "Détention d'objets prohibés", min: 1400, max: 4200 },
-      { label: "Extorsion", min: 1500, max: 4500 },
-      { label: "Dégradation de bien public et/ou privé", min: 2000, max: 6000 },
-      { label: "Refus d'obtempérer", min: 2000, max: 6000 },
-      { label: "Vente de stupéfiants", min: 2000, max: 6000 },
+      { label: "Détention d'objets prohibés", min: 1600, max: 4800 },
+      { label: "Extorsion", min: 1750, max: 5250 },
+      { label: "Dégradation de bien public et/ou privé", min: 2300, max: 6900 },
+      { label: "Refus d'obtempérer", min: 2500, max: 7500 },
       { label: "Braconnage / Cruauté sur animal", min: 2500, max: 7500 },
       { label: "Manquement aux obligations du Serment", min: 2500, max: 7500 },
-      { label: "Port d'arme illégal", min: 2500, max: 7500 },
-      { label: "Braquage de commerce local/cambriolage", min: 2800, max: 8400 },
-      { label: "Atteinte à l'intégrité morale et/ou physique", min: 3000, max: 9000 },
       { label: "Mise en danger d'autrui", min: 3000, max: 9000 },
       { label: "Organisation d'événement illégal", min: 3200, max: 9600 },
+      { label: "Braquage de commerce local/cambriolage", min: 3500, max: 10500 },
+      { label: "Port d'arme illégal", min: 4000, max: 12000 },
+      { label: "Atteinte à l'intégrité morale et/ou physique", min: 5000, max: 15000 },
       { label: "Intrusion illégale sur propriété publique", min: 5000, max: 15000 },
       { label: "Trafic de stupéfiants", min: 5500, max: 16500 },
-      { label: "Vol aggravé", min: 7000, max: 21000 }
+      { label: "Vol aggravé", min: 10000, max: 30000 }
     ]
   },
   3: {
@@ -39,38 +38,36 @@ const categories = {
     items: [
       { label: "Divulgations et/ou vol d'informations confidentielles", min: 6000, max: 18000 },
       { label: "Usurpation d'identité et/ou impersonation", min: 6000, max: 18000 },
-      { label: "Obstruction à la justice", min: 7000, max: 21000 },
       { label: "Diffamation", min: 7000, max: 21000 },
-      { label: "Perturbation au sein d'un tribunal", min: 7000, max: 21000 },
-      { label: "Atteinte à l'intégrité morale armée", min: 7500, max: 22500 },
-      { label: "Parjure ou faux témoignage", min: 8000, max: 24000 },
-      { label: "Détention de matériel militaire et/ou d'armement lourd prohibé", min: 8500, max: 25500 },
-      { label: "Tentative de corruption", min: 8500, max: 25500 },
       { label: "Atteinte au bon fonctionnement d'une entreprise", min: 9000, max: 27000 },
-      { label: "Menace contre agent public", min: 9000, max: 27000 },
-      { label: "Cybercriminalité", min: 12000, max: 36000 },
-      { label: "Trafic et/ou contrebande", min: 12000, max: 36000 },
-      { label: "Atteinte à l'intégrité physique armée", min: 12000, max: 36000 },
-      { label: "Tentative d'enlèvement", min: 12500, max: 37500 },
-      { label: "Braquage à la plateforme pétrolière/Yacht", min: 13000, max: 39000 }
+      { label: "Obstruction à la justice", min: 10000, max: 30000 },
+      { label: "Tentative de corruption", min: 10000, max: 30000 },
+      { label: "Atteinte à l'intégrité morale armée", min: 12000, max: 36000 },
+      { label: "Parjure ou faux témoignage", min: 12000, max: 36000 },
+      { label: "Détention de matériel militaire et/ou d'armement lourd prohibé", min: 13000, max: 39000 },
+      { label: "Perturbation au sein d'un tribunal", min: 14000, max: 42000 },
+      { label: "Cybercriminalité", min: 15000, max: 45000 },
+      { label: "Trafic et/ou contrebande", min: 15000, max: 45000 },
+      { label: "Atteinte à l'intégrité physique armée", min: 18000, max: 54000 },
+      { label: "Menace ou atteinte contre agent public", min: 20000, max: 60000 },
+      { label: "Braquage à la plateforme pétrolière/Yacht", min: 20000, max: 60000 }
     ]
   },
   4: {
     title: "Cat. 4",
     items: [
-      { label: "Corruption ou chantage", min: 17500, max: 52500 },
-      { label: "Fraude", min: 20000, max: 60000 },
-      { label: "Enlèvement ou prise d'otage", min: 22000, max: 66000 },
-      { label: "Attaque à main armée aggravée", min: 22000, max: 66000 },
+      { label: "Corruption ou chantage", min: 25000, max: 75000 },
+      { label: "Fraude/Blanchiement d'argent", min: 25000, max: 75000 },
+      { label: "Enlèvement ou prise d'otage", min: 25000, max: 75000 },
       { label: "Violation de serment", min: 30000, max: 90000 },
-      { label: "Tentative d'homicide", min: 30000, max: 90000 },
+      { label: "Attaque à main armée aggravée", min: 40000, max: 120000 },
       { label: "Perturbation de San Andreas", min: 40000, max: 120000 },
-      { label: "Homicide involontaire", min: 50000, max: 150000 },
-      { label: "Homicide volontaire", min: 90000, max: 270000 },
-      { label: "Mise en péril des infrastructures étatiques", min: 90000, max: 270000 },
-      { label: "Mise en péril des représentants étatiques", min: 150000, max: 450000 },
-      { label: "Homicide sur représentant étatique", min: 350000, max: 1050000 },
-      { label: "Fraude Fiscale", min: 20000, max: 60000 }
+      { label: "Tentative d'homicide", min: 50000, max: 150000 },
+      { label: "Homicide involontaire", min: 75000, max: 225000 },
+      { label: "Homicide volontaire", min: 150000, max: 450000 },
+      { label: "Mise en péril des infrastructures étatiques", min: 200000, max: 600000 },
+      { label: "Mise en péril des représentants étatiques", min: 250000, max: 750000 },
+      { label: "Homicide sur représentant étatique", min: 500000, max: 1500000 },
     ]
   }
 };
