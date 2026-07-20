@@ -9,7 +9,7 @@ import {
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = "./vendor/pdfjs/package/build/pdf.worker.mjs?v=20260406-1";
 
-const PDF_URL = "docs/Article-de-lois-070726.pdf";
+const PDF_URL = "docs/Article-de-lois-070726.pdf?v=20260720-1";
 const frameElement = document.getElementById("document-frame");
 const pageStatusElement = document.getElementById("page-status");
 const searchStatusElement = document.getElementById("search-status");
