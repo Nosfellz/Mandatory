@@ -122,6 +122,128 @@ function updateSearchStatus(matchesCount = { current: 0, total: 0 }, findState =
   searchStatusElement.textContent = `${current} / ${total} résultat(s)`;
 }
 
+function getSearchQueryVariants(query = state.searchQuery) {
+  const normalizedQuery = normalizeSearchText(query);
+
+  if (!normalizedQuery) {
+    return [];
+  }
+
+  if (!isSingleWordSearchQuery(normalizedQuery)) {
+    return [normalizedQuery];
+  }
+
+  const variants = new Set([normalizedQuery]);
+
+  if (normalizedQuery.endsWith("s") && normalizedQuery.length > 1) {
+    variants.add(normalizedQuery.slice(0, -1));
+  } else {
+    variants.add(`${normalizedQuery}s`);
+  }
+
+  return [...variants]
+    .filter(Boolean)
+    .sort((variantA, variantB) => variantB.length - variantA.length);
+}
+
+function findExactMatchesInText(pageContent, queryVariants) {
+  if (!pageContent || !queryVariants?.length) {
+    return [];
+  }
+
+  const searchText = pageContent.toLowerCase();
+  const exactMatches = [];
+
+  queryVariants.forEach((searchQuery) => {
+    const requireWholeWord = isSingleWordSearchQuery(searchQuery);
+    let fromIndex = 0;
+
+    while (fromIndex < searchText.length) {
+      const matchStart = searchText.indexOf(searchQuery, fromIndex);
+
+      if (matchStart === -1) {
+        break;
+      }
+
+      const matchEnd = matchStart + searchQuery.length;
+      const previousCharacter = matchStart > 0 ? searchText[matchStart - 1] : "";
+      const nextCharacter = matchEnd < searchText.length ? searchText[matchEnd] : "";
+      const isWholeWordMatch = !requireWholeWord
+        || (!isSearchWordCharacter(previousCharacter) && !isSearchWordCharacter(nextCharacter));
+
+      if (isWholeWordMatch) {
+        exactMatches.push({
+          start: matchStart,
+          length: searchQuery.length,
+        });
+      }
+
+      fromIndex = matchStart + Math.max(searchQuery.length, 1);
+    }
+  });
+
+  exactMatches.sort((matchA, matchB) => (
+    matchA.start - matchB.start || matchB.length - matchA.length
+  ));
+
+  return exactMatches.filter((match, matchIndex) => {
+    const previousMatch = exactMatches[matchIndex - 1];
+
+    if (!previousMatch) {
+      return true;
+    }
+
+    return !(
+      match.start === previousMatch.start
+      && match.length === previousMatch.length
+    );
+  });
+}
+
+async function refreshExactSearchResults(query = state.searchQuery) {
+  const normalizedQuery = normalizeSearchText(query);
+  const queryVariants = getSearchQueryVariants(normalizedQuery);
+  const nextToken = state.exactSearch.token + 1;
+
+  state.exactSearch = {
+    query: normalizedQuery,
+    total: 0,
+    ready: false,
+    token: nextToken,
+    pageMatches: [],
+  };
+
+  if (!normalizedQuery || !state.pdfDocument) {
+    state.exactSearch.ready = true;
+    return;
+  }
+
+  const pageMatches = [];
+  let total = 0;
+
+  for (let pageIndex = 0; pageIndex < state.pdfDocument.numPages; pageIndex += 1) {
+    // Count against the visible extracted text rather than PDF.js internal
+    // page content, which can duplicate fragments on some compressed PDFs.
+    const pageContent = (await getPageSearchLines(pageIndex + 1)).join("\n");
+    const matches = findExactMatchesInText(pageContent, queryVariants);
+
+    pageMatches.push(matches);
+    total += matches.length;
+  }
+
+  if (state.exactSearch.token !== nextToken) {
+    return;
+  }
+
+  state.exactSearch = {
+    query: normalizedQuery,
+    total,
+    ready: true,
+    token: nextToken,
+    pageMatches,
+  };
+}
+
 const toolbarPlaceholderElement = document.createElement("div");
 toolbarPlaceholderElement.className = "document-toolbar-placeholder";
 toolbarPlaceholderElement.hidden = true;
@@ -137,12 +259,14 @@ function dispatchFindCommand(type = "", findPrevious = false) {
   }
 
   const normalizedQuery = state.searchQuery.trim();
+  const queryVariants = getSearchQueryVariants(normalizedQuery);
+  const viewerQuery = queryVariants.length === 1 ? normalizedQuery : queryVariants;
 
   state.eventBus.dispatch("find", {
     source: window,
     type,
-    query: normalizedQuery,
-    phraseSearch: true,
+    query: viewerQuery,
+    phraseSearch: queryVariants.length === 1,
     caseSensitive: false,
     entireWord: isSingleWordSearchQuery(normalizedQuery),
     highlightAll: true,
@@ -374,7 +498,18 @@ function queueValidateSearchNavigation() {
       return;
     }
 
+    const currentMatches = getViewerMatchesCount();
     const currentSignature = getSelectedMatchSignature();
+
+    if (currentMatches.total === 0) {
+      clearPendingSearchNavigation();
+      return;
+    }
+
+    if (currentMatches.current !== pendingNavigation.baselineCount) {
+      clearPendingSearchNavigation();
+      return;
+    }
 
     if (!currentSignature) {
       if (pendingNavigation.attempts >= 2) {
@@ -382,11 +517,6 @@ function queueValidateSearchNavigation() {
       } else {
         queueValidateSearchNavigation();
       }
-      return;
-    }
-
-    if (currentSignature !== pendingNavigation.baselineSignature) {
-      clearPendingSearchNavigation();
       return;
     }
 
@@ -671,6 +801,7 @@ function isSingleWordSearchQuery(value) {
 
 function extractPageLines(items) {
   const tolerance = 2;
+  const duplicateXTolerance = 0.5;
   const lines = [];
 
   items
@@ -678,17 +809,24 @@ function extractPageLines(items) {
     .forEach((item) => {
       const y = item.transform?.[5] ?? 0;
       const x = item.transform?.[4] ?? 0;
+      const text = item.str.trim();
       const existingLine = lines.find((line) => Math.abs(line.y - y) <= tolerance);
 
       if (existingLine) {
-        existingLine.items.push({ x, text: item.str.trim() });
+        const isDuplicateItem = existingLine.items.some((existingItem) => (
+          existingItem.text === text && Math.abs(existingItem.x - x) <= duplicateXTolerance
+        ));
+
+        if (!isDuplicateItem) {
+          existingLine.items.push({ x, text });
+        }
         existingLine.y = (existingLine.y + y) / 2;
         return;
       }
 
       lines.push({
         y,
-        items: [{ x, text: item.str.trim() }],
+        items: [{ x, text }],
       });
     });
 
@@ -700,6 +838,7 @@ function extractPageLines(items) {
 
 function extractPageLineData(items) {
   const tolerance = 2;
+  const duplicateXTolerance = 0.5;
   const lines = [];
 
   items
@@ -707,18 +846,25 @@ function extractPageLineData(items) {
     .forEach((item) => {
       const y = item.transform?.[5] ?? 0;
       const x = item.transform?.[4] ?? 0;
+      const text = item.str.trim();
       const existingLine = lines.find((line) => Math.abs(line.y - y) <= tolerance);
       const lineItem = {
         x,
         y,
-        text: item.str.trim(),
+        text,
         width: item.width ?? 0,
         height: item.height ?? 0,
         transform: item.transform,
       };
 
       if (existingLine) {
-        existingLine.items.push(lineItem);
+        const isDuplicateItem = existingLine.items.some((existingItem) => (
+          existingItem.text === text && Math.abs(existingItem.x - x) <= duplicateXTolerance
+        ));
+
+        if (!isDuplicateItem) {
+          existingLine.items.push(lineItem);
+        }
         existingLine.y = (existingLine.y + y) / 2;
         return;
       }
@@ -1064,12 +1210,92 @@ function handleSearchNavigation(findPrevious = false) {
   syncSearchQueryFromInput();
   state.pendingSearchNavigation = {
     findPrevious,
-    baselineSignature: getSelectedMatchSignature(),
+    baselineCount: getViewerMatchesCount().current,
     attempts: 0,
   };
   dispatchFindCommand("again", findPrevious);
   queueScrollToSelectedMatch();
   queueValidateSearchNavigation();
+}
+
+function getCanonicalMatchPosition(pageContent, matchStart, matchLength) {
+  const fallback = {
+    start: matchStart,
+    length: matchLength,
+    end: matchStart + matchLength,
+  };
+
+  if (!pageContent || !Number.isFinite(matchStart) || !Number.isFinite(matchLength) || matchLength <= 0) {
+    return fallback;
+  }
+
+  const rawMatch = pageContent.slice(matchStart, matchStart + matchLength);
+  if (!rawMatch) {
+    return fallback;
+  }
+
+  const leadingTrim = rawMatch.match(/^[\s.,;:!?'"“”‘’()[\]{}-]+/u)?.[0].length ?? 0;
+  const trailingTrim = rawMatch.match(/[\s.,;:!?'"“”‘’()[\]{}-]+$/u)?.[0].length ?? 0;
+  const trimmedLength = matchLength - leadingTrim - trailingTrim;
+
+  if (trimmedLength <= 0) {
+    return fallback;
+  }
+
+  return {
+    start: matchStart + leadingTrim,
+    length: trimmedLength,
+    end: matchStart + leadingTrim + trimmedLength,
+  };
+}
+
+function shouldMergeCanonicalMatches(previousMatch, nextMatch) {
+  if (!previousMatch || !nextMatch) {
+    return false;
+  }
+
+  if (nextMatch.start <= previousMatch.end) {
+    return true;
+  }
+
+  const gap = nextMatch.start - previousMatch.end;
+  return gap >= 0 && gap <= 2;
+}
+
+function getDedupedPageMatchesData() {
+  const pageMatches = state.findController?.pageMatches ?? [];
+  const pageMatchesLength = state.findController?.pageMatchesLength ?? [];
+  const pageContents = state.findController?._pageContents ?? [];
+
+  return pageMatches.map((matches, pageIndex) => {
+    const lengths = pageMatchesLength[pageIndex] ?? [];
+    const pageContent = pageContents[pageIndex] ?? "";
+    const orderedMatches = Array.isArray(matches) ? matches : [];
+    const rawIndexToDedupedIndex = new Map();
+    const dedupedMatches = [];
+
+    orderedMatches.forEach((matchStart, rawIndex) => {
+      const matchLength = lengths[rawIndex] ?? 0;
+      const canonicalMatch = getCanonicalMatchPosition(pageContent, matchStart, matchLength);
+      const lastMatch = dedupedMatches[dedupedMatches.length - 1];
+
+      if (shouldMergeCanonicalMatches(lastMatch, canonicalMatch)) {
+        lastMatch.start = Math.min(lastMatch.start, canonicalMatch.start);
+        lastMatch.end = Math.max(lastMatch.end, canonicalMatch.end);
+        lastMatch.length = Math.max(lastMatch.end - lastMatch.start, 0);
+        rawIndexToDedupedIndex.set(rawIndex, dedupedMatches.length - 1);
+        return;
+      }
+
+      rawIndexToDedupedIndex.set(rawIndex, dedupedMatches.length);
+      dedupedMatches.push(canonicalMatch);
+    });
+
+    return {
+      dedupedMatches,
+      rawIndexToDedupedIndex,
+    };
+  });
 }
 
 function getRawViewerMatchesCount() {
@@ -1080,28 +1306,112 @@ function getRawViewerMatchesCount() {
   }
 
   const selected = state.findController.selected;
-  const pageMatches = state.findController.pageMatches ?? [];
-  const total = pageMatches.reduce((sum, matches) => sum + (matches?.length ?? 0), 0);
+  const dedupedPageMatches = getDedupedPageMatchesData();
+  const total = dedupedPageMatches.reduce((sum, page) => sum + page.dedupedMatches.length, 0);
 
   if (!selected || selected.pageIdx < 0 || selected.matchIdx < 0) {
     return { current: 0, total };
   }
 
+  const selectedPageMatches = dedupedPageMatches[selected.pageIdx];
+  const selectedDedupedIndex = selectedPageMatches?.rawIndexToDedupedIndex.get(selected.matchIdx);
+
+  if (selectedDedupedIndex == null) {
+    return { current: 0, total };
+  }
+
   let current = 0;
   for (let pageIndex = 0; pageIndex < selected.pageIdx; pageIndex += 1) {
-    current += pageMatches[pageIndex]?.length ?? 0;
+    current += dedupedPageMatches[pageIndex]?.dedupedMatches.length ?? 0;
   }
-  current += selected.matchIdx + 1;
+  current += selectedDedupedIndex + 1;
 
   return { current, total };
 }
 
 function getViewerMatchesCount() {
   const rawMatches = getRawViewerMatchesCount();
+  const normalizedQuery = getNormalizedSearchQuery();
+  const exactSearchMatches = state.exactSearch;
+
+  if (!normalizedQuery || !exactSearchMatches.ready || exactSearchMatches.query !== normalizedQuery) {
+    return {
+      current: rawMatches.current,
+      total: rawMatches.total,
+    };
+  }
+
+  const exactTotal = exactSearchMatches.total ?? 0;
+
+  if (exactTotal === 0) {
+    return {
+      current: 0,
+      total: 0,
+    };
+  }
+
+  const selected = state.findController?.selected;
+  const selectedPageRawMatches = selected?.pageIdx >= 0
+    ? (state.findController?.pageMatches?.[selected.pageIdx] ?? [])
+    : [];
+  const selectedRawMatchStart = selected?.matchIdx >= 0
+    ? selectedPageRawMatches[selected.matchIdx]
+    : null;
+
+  if (!selected || selected.pageIdx < 0 || selected.matchIdx < 0 || selectedRawMatchStart == null) {
+    return {
+      current: Math.min(rawMatches.current || 1, exactTotal),
+      total: exactTotal,
+    };
+  }
+
+  const selectedPageExactMatches = exactSearchMatches.pageMatches?.[selected.pageIdx] ?? [];
+  let selectedExactIndex = selectedPageExactMatches.findIndex(({ start, length }) => (
+    selectedRawMatchStart >= start && selectedRawMatchStart < start + Math.max(length, 1)
+  ));
+
+  if (selectedExactIndex === -1 && selectedPageExactMatches.length > 0) {
+    selectedExactIndex = selectedPageExactMatches.reduce((closestIndex, match, matchIndex, matches) => {
+      if (closestIndex === -1) {
+        return matchIndex;
+      }
+
+      const currentDistance = Math.abs(selectedRawMatchStart - match.start);
+      const closestDistance = Math.abs(selectedRawMatchStart - matches[closestIndex].start);
+      return currentDistance < closestDistance ? matchIndex : closestIndex;
+    }, -1);
+  }
+
+  if (selectedExactIndex === -1) {
+    return {
+      current: Math.min(rawMatches.current || 1, exactTotal),
+      total: exactTotal,
+    };
+  }
 
   return {
-    current: rawMatches.current,
-    total: rawMatches.total,
+    current: exactSearchMatches.pageMatches
+      .slice(0, selected.pageIdx)
+      .reduce((sum, matches) => sum + matches.length, 0) + selectedExactIndex + 1,
+    total: exactTotal,
+  };
+}
+
+function getSearchDebugSnapshot() {
+  return {
+    searchQuery: state.searchQuery,
+    normalizedQuery: getNormalizedSearchQuery(),
+    exactSearch: {
+      query: state.exactSearch.query,
+      total: state.exactSearch.total,
+      ready: state.exactSearch.ready,
+      token: state.exactSearch.token,
+      pageMatches: (state.exactSearch.pageMatches ?? []).map((matches) => matches.length),
+    },
+    rawMatches: getRawViewerMatchesCount(),
+    displayedMatches: getViewerMatchesCount(),
+    selected: state.findController?.selected ?? null,
+    rawPageMatches: (state.findController?.pageMatches ?? []).map((matches) => matches?.length ?? 0),
   };
 }
 
@@ -1384,6 +1694,9 @@ function bindEvents() {
     queueToolbarPinUpdate();
     clearPendingSearchNavigation();
     clearArticleSearchHighlight();
+    void refreshExactSearchResults(state.searchQuery).then(() => {
+      updateSearchStatus(getViewerMatchesCount());
+    });
     dispatchFindCommand("");
     queueTrimHighlightWhitespace();
   });
@@ -1412,6 +1725,7 @@ function bindEvents() {
     }
 
     state.searchQuery = "";
+    resetExactSearchState();
     setSearchActiveState(false);
     clearPendingSearchNavigation();
     queueToolbarPinUpdate();
@@ -1446,6 +1760,11 @@ async function initDocumentViewer() {
     state.pdfViewer.setDocument(state.pdfDocument);
     state.linkService.setDocument(state.pdfDocument, null);
     state.findController.setDocument(state.pdfDocument);
+    window.__loisDebug = {
+      getSnapshot: () => getSearchDebugSnapshot(),
+      getPageSearchLines: (pageNumber) => getPageSearchLines(pageNumber),
+      refreshExactSearchResults: (query) => refreshExactSearchResults(query),
+    };
     await renderOutline();
     updatePageCountBadge();
     updatePageStatus(1);

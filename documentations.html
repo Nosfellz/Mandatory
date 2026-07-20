@@ -13,7 +13,7 @@
       <div class="document-hero-copy">
         <small>Documentations visuelles</small>
         <h1>Les textes officiels</h1>
-        <p>Un espace dédié à la documentation interne, aux communications de la Présidence et du Gouvernement relatives à la Justice.</p>
+        <p>Un espace dédié à la documentation interne de Mandatory, aux communications de la Présidence, du Gouvernement et des Mairies relatives à la Justice.</p>
         <div class="hero-actions hero-nav-actions">
           <a class="hero-pill hero-pill-primary" href="documentations.html">💼 Documentations en vigueur</a>
           <a class="hero-pill hero-pill-secondary" href="lois.html">📕 Les lois</a>
@@ -34,12 +34,12 @@
     <section class="document-viewer-shell">
       <section class="gallery-browser">
         <div class="gallery-sidebar">
-          <span class="document-hero-update gallery-menu-update gallery-menu-update-live">Dernière mise à jour • 16 mai 2026</span>
+          <span class="document-hero-update gallery-menu-update gallery-menu-update-live">Dernière mise à jour • 20 juillet 2026</span>
 
           <aside class="gallery-menu" aria-label="Menu des documentations">
             <section class="gallery-menu-group" aria-labelledby="gallery-mandatory">
             <h2 id="gallery-mandatory" class="sr-only">Mandatory</h2>
-            <span class="gallery-section-tag gallery-section-tag-mandatory">Mandatory</span>
+            <button type="button" class="gallery-section-tag gallery-menu-toggle gallery-section-tag-mandatory" aria-expanded="true">⚖️ Mandatory</button>
 
             <button
               class="gallery-menu-item"
@@ -69,7 +69,7 @@
 
           <section class="gallery-menu-group" aria-labelledby="gallery-presidence">
             <h2 id="gallery-presidence" class="sr-only">Présidence</h2>
-            <span class="gallery-section-tag gallery-section-tag-presidence">Présidence</span>
+            <button type="button" class="gallery-section-tag gallery-menu-toggle gallery-section-tag-presidence" aria-expanded="true">🗽 Présidence</button>
 
             <button
               class="gallery-menu-item"
@@ -126,20 +126,90 @@
 
           <section class="gallery-menu-group" aria-labelledby="gallery-gouvernement">
             <h2 id="gallery-gouvernement" class="sr-only">Gouvernement</h2>
-            <span class="gallery-section-tag gallery-section-tag-government">Gouvernement</span>
+            <button type="button" class="gallery-section-tag gallery-menu-toggle gallery-section-tag-government" aria-expanded="true">🏛️ Gouvernement</button>
 
             <button
               class="gallery-menu-item"
               type="button"
-              data-doc-id="liste-parti-senat"
-              data-image-src="img/Liste_parti_senat.jpg"
-              data-image-alt="Liste parti sénat"
+              data-doc-id="equipe-gouv"
+              data-image-src="img/Equipe_Gouv.jpg"
+              data-image-alt="Équipe du Gouvernement"
               data-image-group="Gouvernement"
               data-image-group-key="government"
-              data-image-link="img/Liste_parti_senat.jpg"
+              data-image-link="img/Equipe_Gouv.jpg"
             >
-              <span class="gallery-menu-item-title">Liste des partis candidats aux Sénatoriales</span>
-              <span class="gallery-menu-item-meta">Mai 2026</span>
+              <span class="gallery-menu-item-title">Composition du Gouvernement</span>
+              <span class="gallery-menu-item-meta">Juin 2026</span>
+            </button>
+
+            <button
+              class="gallery-menu-item"
+              type="button"
+              data-doc-id="liste-senateurs"
+              data-image-src="img/Liste_senateur.jpg"
+              data-image-alt="Liste des sénateurs"
+              data-image-group="Gouvernement"
+              data-image-group-key="government"
+              data-image-link="img/Liste_senateur.jpg"
+            >
+              <span class="gallery-menu-item-title">Liste des sénateurs</span>
+              <span class="gallery-menu-item-meta">Juin 2026</span>
+            </button>
+
+            <button
+              class="gallery-menu-item"
+              type="button"
+              data-doc-id="liste-associations"
+              data-image-src="img/liste-associations.jpg"
+              data-image-alt="Liste des associations"
+              data-image-group="Gouvernement"
+              data-image-group-key="government"
+              data-image-link="img/liste-associations.jpg"
+            >
+              <span class="gallery-menu-item-title">Liste des associations</span>
+              <span class="gallery-menu-item-meta">Juin 2026</span>
+            </button>
+
+            <button
+              class="gallery-menu-item"
+              type="button"
+              data-doc-id="decret-aux-justice"
+              data-image-src="img/Decret._aux_justice_1.jpg"
+              data-image-alt="Décret aux justice"
+              data-image-group="Gouvernement"
+              data-image-group-key="government"
+              data-image-link="img/Decret._aux_justice_1.jpg"
+            >
+              <span class="gallery-menu-item-title">Décret : Justice Auxiliaries Act</span>
+              <span class="gallery-menu-item-meta">Juin 2026</span>
+            </button>
+
+            <button
+              class="gallery-menu-item"
+              type="button"
+              data-doc-id="decret-patrons"
+              data-image-src="img/Decret._Patrons_.jpg"
+              data-image-alt="Décret patrons"
+              data-image-group="Gouvernement"
+              data-image-group-key="government"
+              data-image-link="img/Decret._Patrons_.jpg"
+            >
+              <span class="gallery-menu-item-title">Décret : Managerial Probity Act</span>
+              <span class="gallery-menu-item-meta">Juin 2026</span>
+            </button>
+
+            <button
+              class="gallery-menu-item"
+              type="button"
+              data-doc-id="naming"
+              data-image-src="img/Naming.jpg"
+              data-image-alt="Naming"
+              data-image-group="Gouvernement"
+              data-image-group-key="government"
+              data-image-link="img/Naming.jpg"
+            >
+              <span class="gallery-menu-item-title">Liste des Naming dans l'Etat de San Andreas</span>
+              <span class="gallery-menu-item-meta">Juin 2026</span>
             </button>
 
             <button
@@ -173,48 +243,6 @@
             <button
               class="gallery-menu-item"
               type="button"
-              data-doc-id="election-senat"
-              data-image-src="img/Election_senat_1.jpg"
-              data-image-alt="Élection sénat"
-              data-image-group="Gouvernement"
-              data-image-group-key="government"
-              data-image-link="img/Election_senat_1.jpg"
-            >
-              <span class="gallery-menu-item-title">Calendrier des élections sénatoriales</span>
-              <span class="gallery-menu-item-meta">Mai 2026</span>
-            </button>
-
-            <button
-              class="gallery-menu-item"
-              type="button"
-              data-doc-id="decret-ferme-de-chateau"
-              data-image-src="img/Decret_Ferme_de_Marius_3.jpg"
-              data-image-alt="Décret ferme de château"
-              data-image-group="Gouvernement"
-              data-image-group-key="government"
-              data-image-link="img/Decret_Ferme_de_Marius_3.jpg"
-            >
-              <span class="gallery-menu-item-title">Décret : Ferme de Château Marius</span>
-              <span class="gallery-menu-item-meta">Avril 2026</span>
-            </button>
-
-            <button
-              class="gallery-menu-item"
-              type="button"
-              data-doc-id="equipe-gouv"
-              data-image-src="img/Equipe_Gouv.jpg"
-              data-image-alt="Équipe du Gouvernement"
-              data-image-group="Gouvernement"
-              data-image-group-key="government"
-              data-image-link="img/Equipe_Gouv.jpg"
-            >
-              <span class="gallery-menu-item-title">Composition du Gouvernement</span>
-              <span class="gallery-menu-item-meta">Avril 2026</span>
-            </button>
-
-            <button
-              class="gallery-menu-item"
-              type="button"
               data-doc-id="liste-amendes"
               data-image-src="img/Liste_amendes.jpg"
               data-image-alt="Liste des amendes"
@@ -225,19 +253,6 @@
               <span class="gallery-menu-item-title">Liste des amendes</span>
               <span class="gallery-menu-item-meta">Avril 2026</span>
             </button>
-
-            <button
-              class="gallery-menu-item"
-              type="button"
-              data-image-src="img/Liste des associations - avril 2026.png"
-              data-image-alt="Liste des associations - avril 2026"
-              data-image-group="Gouvernement"
-              data-image-group-key="government"
-              data-image-link="img/Liste des associations - avril 2026.png"
-              >
-                <span class="gallery-menu-item-title">Liste des associations</span>
-                <span class="gallery-menu-item-meta">Avril 2026</span>
-              </button>
 
               <button
                 class="gallery-menu-item"
@@ -252,19 +267,6 @@
                 <span class="gallery-menu-item-title">Liste des syndicats</span>
                 <span class="gallery-menu-item-meta">Avril 2026</span>
               </button>
-
-              <button
-                class="gallery-menu-item"
-                type="button"
-                data-image-src="img/Liste des sénateurs - février 2026.png"
-              data-image-alt="Liste des sénateurs - février 2026"
-              data-image-group="Gouvernement"
-              data-image-group-key="government"
-              data-image-link="img/Liste des sénateurs - février 2026.png"
-            >
-              <span class="gallery-menu-item-title">Liste des sénateurs</span>
-              <span class="gallery-menu-item-meta">Février 2026</span>
-            </button>
 
             <button
               class="gallery-menu-item"
@@ -304,7 +306,78 @@
               <span class="gallery-menu-item-title">Zones interdites</span>
             </button>
 
-            </section>
+          </section>
+
+          <section class="gallery-menu-group" aria-labelledby="gallery-los-santos">
+            <h2 id="gallery-los-santos" class="sr-only">Mairie de Los Santos</h2>
+            <button type="button" class="gallery-section-tag gallery-menu-toggle gallery-section-tag-government gallery-menu-toggle-live" aria-expanded="true">🌴 Mairie de Los Santos</button>
+
+            <button
+              class="gallery-menu-item"
+              type="button"
+              data-doc-id="arrete-municipal-eau-1"
+              data-image-src="img/LosSantos-01-2026-1_2.png"
+              data-image-alt="Arrêté municipal relatif aux mesures temporaires de restriction de l'usage de l'eau - 1 sur 2"
+              data-image-group="Mairie de Los Santos"
+              data-image-group-key="government"
+              data-image-link="img/LosSantos-01-2026-1_2.png"
+            >
+              <span class="gallery-menu-item-title">Arrêté municipal : restrictions de l'usage de l'eau. 1/2</span>
+              <span class="gallery-menu-item-meta">Juillet 2026</span>
+            </button>
+
+            <button
+              class="gallery-menu-item"
+              type="button"
+              data-doc-id="arrete-municipal-eau-2"
+              data-image-src="img/LosSantos-01-2026-2_2.png"
+              data-image-alt="Arrêté municipal relatif aux mesures temporaires de restriction de l'usage de l'eau - 2 sur 2"
+              data-image-group="Mairie de Los Santos"
+              data-image-group-key="government"
+              data-image-link="img/LosSantos-01-2026-2_2.png"
+            >
+              <span class="gallery-menu-item-title">Arrêté municipal : restrictions de l'usage de l'eau. 2/2</span>
+              <span class="gallery-menu-item-meta">Juillet 2026</span>
+            </button>
+          </section>
+
+          <section class="gallery-menu-group" aria-labelledby="gallery-sandy-shores">
+            <h2 id="gallery-sandy-shores" class="sr-only">Mairie de Sandy Shores</h2>
+            <button type="button" class="gallery-section-tag gallery-menu-toggle gallery-section-tag-government" aria-expanded="true">🌵 Mairie de Sandy Shores</button>
+          </section>
+
+          <section class="gallery-menu-group" aria-labelledby="gallery-paleto">
+            <h2 id="gallery-paleto" class="sr-only">Mairie de Paleto</h2>
+            <button type="button" class="gallery-section-tag gallery-menu-toggle gallery-section-tag-government gallery-menu-toggle-live" aria-expanded="true">🦫 Mairie de Paleto</button>
+
+            <button
+              class="gallery-menu-item"
+              type="button"
+              data-doc-id="paleto-arrete-municipal"
+              data-image-src="img/Paleto-Arrete_Municipal.png"
+              data-image-alt="Arrêté municipal de Paleto"
+              data-image-group="Mairie de Paleto"
+              data-image-group-key="government"
+              data-image-link="img/Paleto-Arrete_Municipal.png"
+            >
+              <span class="gallery-menu-item-title">Arrêté municipal : Restrictions de l'eau & feux</span>
+              <span class="gallery-menu-item-meta">Juillet 2026</span>
+            </button>
+
+            <button
+              class="gallery-menu-item"
+              type="button"
+              data-doc-id="liste-mairie-paleto"
+              data-image-src="img/Liste_mairie_Paleto.png"
+              data-image-alt="Composition des membres de la mairie de Paleto"
+              data-image-group="Mairie de Paleto"
+              data-image-group-key="government"
+              data-image-link="img/Liste_mairie_Paleto.png"
+            >
+              <span class="gallery-menu-item-title">L'équipe Municipale de Paleto</span>
+              <span class="gallery-menu-item-meta">Juillet 2026</span>
+            </button>
+          </section>
           </aside>
         </div>
 

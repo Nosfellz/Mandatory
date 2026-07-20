@@ -1,4 +1,5 @@
 const menuItems = Array.from(document.querySelectorAll(".gallery-menu-item"));
+const menuGroups = Array.from(document.querySelectorAll(".gallery-menu-group"));
 const previewPanel = document.querySelector(".gallery-preview");
 const previewImage = document.getElementById("galleryPreviewImage");
 const previewGroup = document.getElementById("galleryPreviewGroup");
@@ -11,6 +12,28 @@ const groupClassByKey = {
   government: "gallery-section-tag-government",
 };
 const initialDocId = new URLSearchParams(window.location.search).get("doc");
+
+function setGroupCollapsed(group, collapsed) {
+  if (!group) {
+    return;
+  }
+
+  group.classList.toggle("is-collapsed", collapsed);
+
+  const toggle = group.querySelector(".gallery-menu-toggle");
+  if (toggle) {
+    toggle.setAttribute("aria-expanded", String(!collapsed));
+  }
+}
+
+function expandGroupForItem(item) {
+  const group = item?.closest(".gallery-menu-group");
+  if (!group) {
+    return;
+  }
+
+  setGroupCollapsed(group, false);
+}
 
 function showEmptyPreview(message = "Choisis un document dans le menu de gauche pour afficher son aperçu dans cet espace.") {
   previewGroup.hidden = true;
@@ -26,6 +49,8 @@ function showEmptyPreview(message = "Choisis un document dans le menu de gauche 
 }
 
 function updatePreview(item) {
+  expandGroupForItem(item);
+
   const {
     imageSrc,
     imageAlt,
@@ -68,6 +93,19 @@ previewImage.addEventListener("error", () => {
 
 menuItems.forEach((item) => {
   item.addEventListener("click", () => updatePreview(item));
+});
+
+menuGroups.forEach((group) => {
+  const toggle = group.querySelector(".gallery-menu-toggle");
+  if (!toggle) {
+    return;
+  }
+
+  setGroupCollapsed(group, true);
+
+  toggle.addEventListener("click", () => {
+    setGroupCollapsed(group, !group.classList.contains("is-collapsed"));
+  });
 });
 
 if (initialDocId) {
