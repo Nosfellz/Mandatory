@@ -23,6 +23,7 @@ const toolbarElement = document.querySelector(".document-toolbar");
 const stageElement = document.querySelector(".document-stage");
 const searchGroupElement = document.querySelector(".document-toolbar-group-search");
 const amendmentsGroupElement = document.querySelector(".document-toolbar-group-amendments");
+const amendmentsLabelElement = document.getElementById("document-amendments-label");
 const outlineContainerElement = document.getElementById("document-outline");
 const documentHeaderElement = document.querySelector(".document-viewer-header");
 const pageCountBadgeElement = document.querySelector(".document-viewer-badge");
@@ -73,6 +74,50 @@ const FIXED_AMENDMENT_PAGES = [
   { label: "14th Amd", pageNumber: 31 },
   { label: "15th Amd", pageNumber: 33 },
 ];
+
+const AMENDMENT_LABELS_BY_WORD = {
+  first: "1st Amd",
+  second: "2nd Amd",
+  third: "3rd Amd",
+  fourth: "4th Amd",
+  fifth: "5th Amd",
+  sixth: "6th Amd",
+  seventh: "7th Amd",
+  eighth: "8th Amd",
+  ninth: "9th Amd",
+  tenth: "10th Amd",
+  eleventh: "11th Amd",
+  twelfth: "12th Amd",
+  thirteenth: "13th Amd",
+  fourteenth: "14th Amd",
+  fifteenth: "15th Amd",
+  fifteen: "15th Amd",
+};
+
+function isAmendmentBoilerplateLine(line = "") {
+  return [
+    /^senate of san andreas$/i,
+    /^to ensure everyone['’]s rights$/i,
+    /^san andreas$/i,
+    /^july\s+\d+(?:st|nd|rd|th)?,\s+2026$/i,
+    /^july\s+\d+(?:st|nd|rd|th)?\s+2026$/i,
+    /^governor clovis porter$/i,
+    /^article\b/i,
+  ].some((pattern) => pattern.test(line.trim()));
+}
+
+function extractAmendmentTitleFromLines(lines = []) {
+  const headingIndex = lines.findIndex((line) => /\bAmendment\b/i.test(line));
+
+  if (headingIndex === -1) {
+    return "";
+  }
+
+  const candidateLines = lines.slice(headingIndex + 1, headingIndex + 9);
+  const titleLine = candidateLines.find((line) => !isAmendmentBoilerplateLine(line));
+
+  return titleLine?.trim() ?? "";
+}
 
 function getNormalizedSearchQuery(value = state.searchQuery) {
   return normalizeSearchText(value);
@@ -1445,9 +1490,27 @@ async function flattenOutlineItems(items, depth = 0, result = []) {
 function createOutlineItemElement(item) {
   const button = document.createElement("button");
   button.type = "button";
-  button.className = "document-outline-item";
-  button.textContent = item.pageNumber ? `${item.title} · p. ${item.pageNumber}` : item.title;
   button.style.setProperty("--outline-depth", item.depth);
+
+  if (item.amendmentTitle) {
+    button.className = "document-outline-item document-outline-item-amendment";
+
+    const labelSpan = document.createElement("span");
+    labelSpan.className = "document-outline-item-amendment-label";
+    labelSpan.textContent = item.title;
+
+    const metaSpan = document.createElement("span");
+    metaSpan.className = "document-outline-item-amendment-meta";
+    metaSpan.textContent = item.pageNumber
+      ? `${item.amendmentTitle} · p. ${item.pageNumber}`
+      : item.amendmentTitle;
+
+    button.appendChild(labelSpan);
+    button.appendChild(metaSpan);
+  } else {
+    button.className = "document-outline-item";
+    button.textContent = item.pageNumber ? `${item.title} · p. ${item.pageNumber}` : item.title;
+  }
 
   if (item.dest) {
     button.addEventListener("click", () => {
@@ -1534,12 +1597,84 @@ function groupOutlineItems(items) {
 
 function buildFixedOutlineItems() {
   return FIXED_AMENDMENT_PAGES.map((item) => ({
-    title: "Voir l'amendement",
+    title: item.label,
     displayTitle: item.label,
     dest: null,
     depth: 0,
     pageNumber: item.pageNumber,
   }));
+}
+
+async function buildDetectedOutlineItems() {
+  if (!state.pdfDocument) {
+    return [];
+  }
+
+  const detectedItems = [];
+  const seenLabels = new Set();
+
+  for (let pageNumber = 1; pageNumber <= state.pdfDocument.numPages; pageNumber += 1) {
+    const pageLines = await getPageSearchLines(pageNumber);
+    const pageText = pageLines.join(" ");
+    const match = pageText.match(/\b(First|Second|Third|Fourth|Fifth|Sixth|Seventh|Eighth|Ninth|Tenth|Eleventh|Twelfth|Thirteenth|Fourteenth|Fifteenth|Fifteen)\s+Amendment\b/i);
+
+    if (!match) {
+      continue;
+    }
+
+    const label = AMENDMENT_LABELS_BY_WORD[match[1].toLowerCase()];
+    if (!label || seenLabels.has(label)) {
+      continue;
+    }
+
+    const amendmentTitle = extractAmendmentTitleFromLines(pageLines);
+
+    seenLabels.add(label);
+    detectedItems.push({
+      title: label,
+      displayTitle: label,
+      amendmentTitle,
+      dest: null,
+      depth: 0,
+      pageNumber,
+    });
+
+    if (detectedItems.length >= 15) {
+      break;
+    }
+  }
+
+  return detectedItems;
+}
+
+function buildOutlineGroupsFromStartItems(startItems) {
+  return startItems.map((item, index) => {
+    const nextItem = startItems[index + 1];
+    const startPage = item.pageNumber;
+    const endPage = Math.max(
+      startPage,
+      (nextItem?.pageNumber ?? state.pdfDocument?.numPages ?? startPage) - (nextItem ? 1 : 0)
+    );
+    const pageItems = [];
+
+    for (let pageNumber = startPage; pageNumber <= endPage; pageNumber += 1) {
+      pageItems.push({
+        title: `Page ${pageNumber - startPage + 1}`,
+        displayTitle: item.amendmentTitle || item.title,
+        dest: null,
+        depth: 0,
+        pageNumber,
+      });
+    }
+
+    return {
+      amendmentLabel: item.title,
+      amendmentTitle: item.amendmentTitle || "",
+      startPage,
+      endPage,
+      items: pageItems,
+    };
+  });
 }
 
 async function renderOutline(items) {
@@ -1549,10 +1684,15 @@ async function renderOutline(items) {
 
   outlineContainerElement.innerHTML = "";
 
-  const flatItems = buildFixedOutlineItems();
-  const groupedItems = groupOutlineItems(flatItems);
+  const detectedItems = await buildDetectedOutlineItems();
+  const startItems = detectedItems.length > 0 ? detectedItems : buildFixedOutlineItems();
+  const outlineGroups = buildOutlineGroupsFromStartItems(startItems);
 
-  if (flatItems.length === 0) {
+  if (outlineGroups.length === 0) {
+    if (amendmentsLabelElement) {
+      amendmentsLabelElement.textContent = "Les amendements";
+    }
+
     const emptyState = document.createElement("span");
     emptyState.className = "document-outline-empty";
     emptyState.textContent = "Aucun amendement disponible";
@@ -1560,47 +1700,23 @@ async function renderOutline(items) {
     return;
   }
 
-  if (flatItems.length === 0) {
-    const emptyState = document.createElement("span");
-    emptyState.className = "document-outline-empty";
-    emptyState.textContent = "Aucun amendement disponible";
-    outlineContainerElement.appendChild(emptyState);
-    return;
+  if (amendmentsLabelElement) {
+    amendmentsLabelElement.textContent = `Les ${outlineGroups.length} amendements`;
   }
 
-  const orderedGroups = [...groupedItems.entries()].sort(([groupA, dataA], [groupB, dataB]) => {
-    if (groupA === "autres") {
-      return 1;
-    }
-    if (groupB === "autres") {
-      return -1;
-    }
-    return dataA.order - dataB.order;
-  });
-
-  const seenSummaryTitles = new Set();
-
-  for (const [, [groupKey, groupData]] of orderedGroups.entries()) {
-    const summaryLabel = groupData.summaryTitle || getOutlineGroupLabel(groupKey);
-    const normalizedSummaryLabel = normalizeHeading(summaryLabel);
-
-    if (seenSummaryTitles.has(normalizedSummaryLabel)) {
-      continue;
-    }
-    seenSummaryTitles.add(normalizedSummaryLabel);
-
+  outlineGroups.forEach((group, index) => {
     const details = document.createElement("details");
     details.className = "document-outline-group";
 
     const summary = document.createElement("summary");
     summary.className = "document-outline-group-summary";
-    const summaryParts = splitSummaryTitleParts(summaryLabel);
+
     const amendmentSpan = document.createElement("span");
     amendmentSpan.className = "document-outline-summary-amendment";
-    amendmentSpan.textContent = summaryParts.amendment;
+    amendmentSpan.textContent = group.amendmentLabel;
     summary.appendChild(amendmentSpan);
 
-    if (summaryParts.title) {
+    if (group.amendmentTitle) {
       const separatorSpan = document.createElement("span");
       separatorSpan.className = "document-outline-summary-separator";
       separatorSpan.textContent = " - ";
@@ -1608,25 +1724,26 @@ async function renderOutline(items) {
 
       const titleSpan = document.createElement("span");
       titleSpan.className = "document-outline-summary-title";
-      titleSpan.textContent = summaryParts.title;
+      titleSpan.textContent = group.amendmentTitle;
       summary.appendChild(titleSpan);
     }
 
     const countSpan = document.createElement("span");
     countSpan.className = "document-outline-summary-count";
-    countSpan.textContent = ` (${groupData.items.length})`;
+    countSpan.textContent = ` (${group.items.length} page${group.items.length > 1 ? "s" : ""})`;
     summary.appendChild(countSpan);
+
     details.appendChild(summary);
 
     const groupList = document.createElement("div");
     groupList.className = "document-outline-group-list";
-    groupData.items.forEach((item) => {
+    group.items.forEach((item) => {
       groupList.appendChild(createOutlineItemElement(item));
     });
 
     details.appendChild(groupList);
     outlineContainerElement.appendChild(details);
-  }
+  });
 }
 
 function bindEvents() {

@@ -1608,6 +1608,13 @@ body::before {
   gap: 0;
   padding: 0;
   overflow: hidden;
+  border-color: rgba(214,143,92,0.24);
+  background:
+    linear-gradient(180deg, rgba(176,106,59,0.1), rgba(255,255,255,0.025)),
+    rgba(43,23,23,0.98);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.05),
+    0 16px 30px rgba(0,0,0,0.14);
 }
 
 .document-toolbar-group-toggle {
@@ -1623,6 +1630,32 @@ body::before {
   text-transform: uppercase;
   background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
   transition: background-color 0.16s ease, color 0.16s ease;
+}
+
+.document-toolbar-group-toggle-amendments {
+  display: grid;
+  gap: 4px;
+  padding: 14px 44px 14px 14px;
+  background:
+    radial-gradient(circle at top left, rgba(214,143,92,0.18), transparent 55%),
+    linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+}
+
+.document-toolbar-group-toggle-kicker {
+  color: rgba(244,230,230,0.66);
+  font-size: 0.54rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.document-toolbar-group-toggle-label {
+  color: #fff0e7;
+  font-family: "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  font-size: 0.94rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: none;
 }
 
 .document-toolbar-group-toggle::-webkit-details-marker {
@@ -1646,6 +1679,12 @@ body::before {
 
 .document-toolbar-group-toggle:hover {
   background: linear-gradient(180deg, rgba(176,106,59,0.14), rgba(255,255,255,0.03));
+}
+
+.document-toolbar-group-toggle-amendments:hover {
+  background:
+    radial-gradient(circle at top left, rgba(214,143,92,0.24), transparent 58%),
+    linear-gradient(180deg, rgba(176,106,59,0.14), rgba(255,255,255,0.03));
 }
 
 .document-toolbar-group-display {
